@@ -1,9 +1,8 @@
 import rhino3dm as rh
-from shapely.geometry import MultiLineString, LineString, asLineString
-from shapely.ops import polygonize, linemerge
+from shapely.geometry import MultiLineString, asLineString
+from shapely.ops import polygonize
 import numpy as np
-import json
-import matplotlib.pyplot as plt
+import os.path
 
 class CoordTransform:
     def __init__(self, vec1, vec2) -> None:
@@ -33,7 +32,7 @@ class RhImporter:
     @classmethod
     def from_file(cls, file_name):
         if not cls._validate_file_name(file_name):
-            raise ValueError("File name not valid.")
+            raise ValueError("File name does not exist or is not a Rhino file.")
         return cls(file_name=file_name)
 
     @classmethod
@@ -44,8 +43,10 @@ class RhImporter:
 
     @staticmethod
     def _validate_file_name(file_name):
-        #does the file exist
-        return True
+        valid = False
+        if os.path.isfile(file_name):
+            valid = file_name.endswith('.3dm')
+        return valid
 
     @staticmethod
     def _validate_brep(geom):
@@ -125,7 +126,6 @@ class RhImporter:
             If a plane distance is provided, but a plane normal is not.
         """
         
-        # construct the transformation matrix
         ct = CoordTransform(vec1,vec2)
         
         #if vec1.shape: 
