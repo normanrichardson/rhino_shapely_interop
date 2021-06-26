@@ -126,12 +126,14 @@ class RhImporter:
             If a plane distance is provided, but a plane normal is not.
         """
         
+        if not (vec1.ndim == 1 and vec1.size == 3):
+            raise ValueError("vec1 is a numpy vector in 3d")
+        if not (vec2.ndim == 1 and vec2.size == 3):
+            raise ValueError("vec2 is a numpy vector in 3d")
+        if not project and not parallel:
+            raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
+
         ct = CoordTransform(vec1,vec2)
-        
-        #if vec1.shape: 
-        #    raise ValueError("If the Shapely plane is not fully defined. Provide both vec1 and vec2")
-        #if not project and not parallel: pass
-        #   raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
 
         def validation_factory():
             if project and parallel: return lambda normal, *args: (ct.plane_normal==np.array([normal.X,normal.Y,normal.Z])).all() 
