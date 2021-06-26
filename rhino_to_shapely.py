@@ -134,10 +134,10 @@ class RhImporter:
         #   raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
 
         def validation_factory():
-            if project and parallel: return lambda normal, *args: ct.plane_normal == normal
+            if project and parallel: return lambda normal, *args: (ct.plane_normal==np.array([normal.X,normal.Y,normal.Z])).all() 
             if project and not parallel: return lambda *args: True
             if not project and parallel: 
-                return lambda normal, orig: ct.plane_normal == normal and \
+                return lambda normal, orig: (ct.plane_normal==np.array([normal.X,normal.Y,normal.Z])).all() and \
                     normal.X*orig.X + normal.Y*orig.Y + normal.Z*orig.Z == plane_distance
             
         validation = validation_factory()

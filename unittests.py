@@ -31,28 +31,13 @@ class TestCoordTransform(unittest.TestCase):
         n = 101
         theta = np.linspace(0,2*np.pi, n)
         pnts = np.array([np.cos(theta), np.sin(theta), np.zeros(n)])
-
         x1 = np.array([1,0,-1])
         x2 = np.array([0,1,0])
         ct = CoordTransform(x1,x2)
         res = ct.transform_rh_sh(pnts)
         mp = asMultiPoint(res[0:2,:].T)
-
-        list(mp.bounds)
+        # test the bounds of the transformed unit circle
         np.testing.assert_array_almost_equal(list(mp.bounds), [-1.0/np.sqrt(2), -1, 1.0/np.sqrt(2), 1])
-        #sp = Point([0,0,0]).buffer(1)
-        #spT = affine_transform(sp, [1.001*1.0/np.sqrt(2), 0, 0, 1.001, 0, 0])
-        #print(spT.boundary.contains(mp[0]))
-        #print(mp[0].within(spT))
-        #MultiPoint.xy
-        #plt.plot(*(sp.boundary.xy))
-        #plt.plot(*(spT.boundary.xy))
-        #[plt.scatter(pnt.x, pnt.y) for pnt in mp]
-        #[plt.scatter([pnt.x, pnt.y]) for pnt in mp]
-        #[plt.plot(x,y) for (x,y) in mp.coords[:]]# for pnt in mp.coords]
-        #plt.show()
         
-        
-
 if __name__=='__main__':
       unittest.main()
