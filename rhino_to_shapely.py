@@ -1,9 +1,9 @@
 import rhino3dm as rh
-from shapely.geometry import MultiLineString, LineString
-from shapely.ops import polygonize
-import matplotlib.pyplot as plt
+from shapely.geometry import MultiLineString, LineString, asLineString
+from shapely.ops import polygonize, linemerge
 import numpy as np
 import json
+import matplotlib.pyplot as plt
 
 class CoordTransform:
     def __init__(self, vec1, vec2) -> None:
@@ -11,12 +11,15 @@ class CoordTransform:
         e3 = np.cross(vec1, vec2) 
         self._e3 = e3 / np.linalg.norm(e3)
         self._e2 = np.cross(self._e3,self._e1)
-        self.Tinv = np.matrix([self._e1,self._e2,self._e3]).T
+        self.Tinv = np.array([self._e1,self._e2,self._e3]).T
         self.T = np.linalg.inv(self.Tinv)
     
-    @staticmethod
     def transform_rh_sh(self, pnt):
         return self.T.dot(pnt)
+
+    @property
+    def plane_normal(self):
+        return self._e3
 
 class RhImporter:
     def __init__(self, **kwarg):
@@ -24,36 +27,43 @@ class RhImporter:
             self._file_name = kwarg["file_name"]
             model = rh.File3dm.Read(self._file_name)
             self._process_objects(model.Objects)
-        elif "surface" in kwarg:
-            self._surfaces = kwarg["surface"]
+        elif "brep" in kwarg:
+            self._brep = [kwarg["brep"]]
     
     @classmethod
     def from_file(cls, file_name):
         if not cls._validate_file_name(file_name):
             raise ValueError("File name not valid.")
-        return cls.__init__(file_name=file_name)
+        return cls(file_name=file_name)
 
     @classmethod
-    def from_serialzed_surface(cls, s_surface):
-        # need some validation here...
-        surface = rh.CommonObject.Decode(s_surface)
-        if not cls._validate_surface(surface): raise ValueError("Data is not surface or the surface it is not planer")
-        return cls.__init__(surface=surface)
+    def from_serialzed_brep(cls, s_brep):
+        brep = rh.CommonObject.Decode(s_brep)
+        if not cls._validate_brep(brep): raise ValueError("Data is not surface or the surface it is not planer")
+        return cls(brep=brep)
 
     @staticmethod
     def _validate_file_name(file_name):
         #does the file exist
-        pass
+        return True
 
     @staticmethod
-    def _validate_surface(self, geom):
+    def _validate_brep(geom):
+        valid = False
+        if isinstance(geom,rh.Brep):
+                if len(geom.Surfaces)==1:
+                    valid = geom.Surfaces[0].IsPlanar()
+        return valid
+
+    @staticmethod
+    def _validate_surface(geom):
         valid = False
         if isinstance(geom, rh.Surface):
             valid = geom.IsPlanar()
         return valid
 
     @staticmethod
-    def _validate_curve(self, geom):
+    def _validate_curve(geom):
         valid = False
         if isinstance(geom, rh.Curve):
             if valid:=geom.IsLinear(): 
@@ -63,20 +73,21 @@ class RhImporter:
         return valid
 
     @staticmethod
-    def _validate_point(self, geom):
+    def _validate_point(geom):
         return isinstance(geom, rh.Point3d)
 
     def _process_objects(self, objects):
+        self._brep = []
         self._surfaces = []
         self._curve = []
         self._point = []
         for obj in objects:
-            if self._validate_surface(obj): self._surfaces.append(obj)
-            if self._validate_curve(obj): self._curve.append(obj)
-            if self._validate_point(obj): self._point.append(obj)
+            if self._validate_brep(obj.Geometry): self._brep.append(obj.Geometry)
+            elif self._validate_surface(obj.Geometry): self._surfaces.append(obj.Geometry)
+            elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
+            elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
-    def get_planer_surface(self, refine_num, vec1=None, vec2=None, plane_distance=0, project=False):
-
+    def get_planer_surface(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
         """Get all the planer surfaces. If a plane normal is provided then only surfaces with this normal are returned (nonunique plane).
         If both a plane normal and a plane distance is provied, then only surfaces in this unique plane are returned.
 
@@ -96,7 +107,12 @@ class RhImporter:
             It must not be [0,0,0] and its only requirments is that it is any vector in the shapely plane (but not equal to `vec1`).
         plane_distance : float, optional
             The distance to the shapely plane. If it is not provided, all geometry is projected onto the provided plane(via `vec1` and `vec2`).
-            If it is provided, then only planar.
+            If it is provided, then only surfaces in the uniquely plane (defined by `vec1`, `vec2`, and `plane_distance`) are yeilded.
+        project : Boolean, optional
+            Controls if the shapes are projected onto the plane in the direction of the shapley plane's normal.
+        parallel : Boolean, optional
+            Controls if only rhino surface have the same normal as the shapely plane are yielded. 
+            If true all nonparallel surfaces are filtered out.
 
         Yields
         -------
@@ -110,21 +126,24 @@ class RhImporter:
         """
         
         # construct the transformation matrix
-
+        ct = CoordTransform(vec1,vec2)
         
-        #if (vec2 is not None and vec1 is None) or (vec1 is not None and vec2 is None): 
+        #if vec1.shape: 
         #    raise ValueError("If the Shapely plane is not fully defined. Provide both vec1 and vec2")
+        #if not project and not parallel: pass
+        #   raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
 
-        #def validation_factory():
-            #if vec1 is None and plane_distance is None: return lambda *args: True
-            #if vec1 is not None and plane_distance is None: return lambda normal, *args: plane_normal == normal
-            #if plane_normal is None and plane_distance is None: 
-            #    return lambda normal, orig: plane_normal == normal and \
-            #        normal.X*orig.X + normal.Y*orig.Y + normal.Z*orig.Z == plane_distance
+        def validation_factory():
+            if project and parallel: return lambda normal, *args: ct.plane_normal == normal
+            if project and not parallel: return lambda *args: True
+            if not project and parallel: 
+                return lambda normal, orig: ct.plane_normal == normal and \
+                    normal.X*orig.X + normal.Y*orig.Y + normal.Z*orig.Z == plane_distance
+            
         validation = validation_factory()
 
-        for surf in self._surfaces:
-            frame = surf.FrameAt(0,0)
+        for surf in self._brep:
+            _, frame = surf.Surfaces[0].FrameAt(0,0)
             if validation(frame.ZAxis, frame.Origin):
                 rh_curvs = []
                 for ii in range(0,len(surf.Edges)):
@@ -132,14 +151,14 @@ class RhImporter:
                 for rh_curv in rh_curvs:
                     if not rh_curv.is_line(): 
                         rh_curv.refine(refine_num)
-                ml = MultiLineString([rc.get_shapely_line() for rc in rh_curvs])
+                ml = MultiLineString([rc.get_shapely_line(ct.transform_rh_sh) for rc in rh_curvs])
                 pgs = list(polygonize(ml))
-                yield pgs[0]
+                if len(pgs)>0: yield pgs[0]
     
-    def get_all_planer_curves(self, plane_normal, plane_distance=None):
+    def get_planer_curves(self, plane_normal, plane_distance=None):
         pass
 
-    def get_all_points(self, plane_normal, plane_distance):
+    def get_points(self, plane_normal, plane_distance):
         pass
 
 class RhCurv:
@@ -154,37 +173,12 @@ class RhCurv:
         self._greville_points_param_modif = [self._greville_points_param[0]]
         for ii, jj in gen_interv:
             self._greville_points_param_modif += list(np.linspace(ii,jj,num+2)[1:])
-    def get_shapely_line(self):
-        line = []
+    def get_shapely_line(self, transform):
+        pnts = []
         for t in self._greville_points_param_modif:
             pnt = self._curv.PointAt(t)
-            line.append((pnt.X, pnt.Y, pnt.Z))
-        return LineString(line)
+            pnts.append([pnt.X, pnt.Y, pnt.Z])
+        pnts_np = transform(np.array(pnts).T)[0:2,:].round(decimals=12)
+        return asLineString(pnts_np.T)
     def is_line(self):
         return self._curv.IsLinear()
-
-def convert_and_refine(rh_geom, refine_num):
-    rh_curvs = []
-    for ii in range(0,len(rh_geom.Edges)):
-        rh_curvs.append(RhCurv(rh_geom.Edges[ii]))
-    for rh_curv in rh_curvs:
-        if not rh_curv.is_line(): 
-            rh_curv.refine(refine_num)
-    ml = MultiLineString([rc.get_shapely_line() for rc in rh_curvs])
-    pgs = list(polygonize(ml))
-    return pgs[0], pgs[1:]
-
-refine = 0
-
-with open('data',"r") as f:
-    json_data = f.read()
-brep_dict = json.loads(json_data)
-brep = rh.CommonObject.Decode(brep_dict[2])
-
-ploy1, holes1 = convert_and_refine(brep, refine)
-
-[plt.plot(*ploy1.exterior.xy)]
-[plt.plot(*ii.xy) for ii in ploy1.interiors]
-plt.show()
-
-RhFile('AAA.3dm')
