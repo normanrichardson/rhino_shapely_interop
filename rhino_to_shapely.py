@@ -73,25 +73,79 @@ class RhImporter:
     
     @classmethod
     def from_file(cls, file_name):
+        """Class method to read from a Rhino file.
+
+        Parameters
+        ----------
+        file_name : string
+            File name of (or path to) a Rhino file.
+
+        Returns
+        -------
+        RhImporter
+
+        Raises
+        ------
+        ValueError
+            If file extention is not ".3dm" or the file does not exit.
+        """
         if not cls._validate_file_name(file_name):
-            raise ValueError("File name does not exist or is not a Rhino file.")
+            raise ValueError("File does not exist or is not a Rhino file.")
         return cls(file_name=file_name)
 
     @classmethod
     def from_serialzed_brep(cls, s_brep):
+        """Class method to read from a serialized brep object.
+
+        Parameters
+        ----------
+        s_brep : string
+            Serialization of a brep
+
+        Returns
+        -------
+        RhImporter
+
+        Raises
+        ------
+        ValueError
+            If the provided serialized object is not a single surface planer brep
+        """
         brep = rh.CommonObject.Decode(s_brep)
-        if not cls._validate_brep(brep): raise ValueError("Data is not surface or the surface it is not planer")
+        if not cls._validate_brep(brep): raise ValueError("Data is not a single surface planer brep.")
         return cls(brep=brep)
 
     @staticmethod
     def _validate_file_name(file_name):
+        """Performs checks on a file name.
+
+        Parameters
+        ----------
+        file_name : string
+            The file name
+
+        Returns
+        -------
+        Boolean
+        """
         valid = False
         if os.path.isfile(file_name):
             valid = file_name.endswith('.3dm')
         return valid
-
+    rh.File3dm.Objects
     @staticmethod
     def _validate_brep(geom):
+        """Performs checks on a brep.
+
+        Parameters
+        ----------
+        geom : rhino3dm.GeometryBase
+            Geometry to test for brep properties.
+
+        Returns
+        -------
+        Boolean
+        """
         valid = False
         if isinstance(geom,rh.Brep):
                 if len(geom.Surfaces)==1:
@@ -100,6 +154,17 @@ class RhImporter:
 
     @staticmethod
     def _validate_surface(geom):
+        """Performs checks on a surface.
+
+        Parameters
+        ----------
+        geom : rhino3dm.GeometryBase
+            Geometry to test for surface properties.
+
+        Returns
+        -------
+        Boolean
+        """
         valid = False
         if isinstance(geom, rh.Surface):
             valid = geom.IsPlanar()
@@ -107,6 +172,17 @@ class RhImporter:
 
     @staticmethod
     def _validate_curve(geom):
+        """Performs checks on a curve.
+
+        Parameters
+        ----------
+        geom : rhino3dm.GeometryBase
+            Geometry to test for curve properties.
+
+        Returns
+        -------
+        Boolean
+        """
         valid = False
         if isinstance(geom, rh.Curve):
             if valid:=geom.IsLinear(): 
@@ -117,9 +193,27 @@ class RhImporter:
 
     @staticmethod
     def _validate_point(geom):
+        """Performs checks on a point.
+
+        Parameters
+        ----------
+        geom : rhino3dm.GeometryBase
+            Geometry to test for point properties.
+
+        Returns
+        -------
+        Boolean
+        """
         return isinstance(geom, rh.Point3d)
 
     def _process_objects(self, objects):
+        """Process the file object table.
+
+        Parameters
+        ----------
+        objects : rhino3dm.File3dmObjectTable
+            The object table for the file.
+        """
         self._brep = []
         self._surfaces = []
         self._curve = []
@@ -131,43 +225,47 @@ class RhImporter:
             elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
     def get_planer_surface(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
-        """Get all the planer surfaces. If a plane normal is provided then only surfaces with this normal are returned (nonunique plane).
-        If both a plane normal and a plane distance is provied, then only surfaces in this unique plane are returned.
+        """Get all the single surface planer breps.
+       Two vectors `vec1` and `vec2` describe the shapely plane, with coordinates (x',y').
+       The breps coordinates (x,y,z) are projected onto (x',y').
+       Options to filter breps are provided:
+           * only breps that are parallel to the Shapely plane
+           * only breps in the Shapely plane
+ 
+       Parameters
+       ----------
+       refine_num : integer
+           Bézier curve interpolation number. In Rhino a surface's edges are nurb based curves.
+           Shapely does not support nurbs, so the individual Bézier curves are interpolated using straight lines.
+           This parameter sets the number of straight lines used in the interpolation.
+       vec1 : numpy array, optional
+           A 3d vector in the Shapely plane. Rhino is a 3D geometry environment.
+           Shapely is a 2D geometric library.
+           Thus a 2D plane needs to be defined in Rhino that represents the Shapely coordinate system.
+           `vec1` represents the 1st vector of this plane. It will be used as Shapely's x direction.
+       vec2 : numpy array, optional
+           Continuing from `vec1`, `vec2` is another vector to befine the Shapely plane.
+           It must not be [0,0,0] and it's only requirement is that it is any vector in the Shapely plane (but not equal to `vec1`).
+       plane_distance : float, optional
+           The distance to the Shapely plane. If it is not provided, all geometry is projected onto the provided plane(via `vec1` and `vec2`).
+           If it is provided, then only surfaces in the unique plane (defined by `vec1`, `vec2`, and `plane_distance`) are yielded.
+       project : Boolean, optional
+           Controls if the shapes are projected onto the plane in the direction of the shapley plane's normal.
+       parallel : Boolean, optional
+           Controls if only the rhino surface have the same normal as the Shapely plane are yielded.
+           If true, all non parallel surfaces are filtered out.
+ 
+       Yields
+       -------
+       Shapely Surface.
+           Shapely surface with a coordinate system defined by the rhino surface's normal vector.
+ 
+       Raises
+       ------
+       ValueError
+           If a plane distance is provided, but a plane normal is not.
+       """
 
-        Parameters
-        ----------
-        refine_num : integer
-            Bézier curve interpolation number. In Rhino a surfaces edges are nurb based curves. 
-            Shapely does not support nurbs, so the individule Bézier curves are interplated using straight lines.
-            This parameter sets the number of staight lines used in the interpolation.
-        vec1 : numpy array, optional
-            A 3d vector in the Shapely plane. Rhino is a 3D geometry envionoment.
-            Shapely is a 2D geometric library.
-            Thus a 2D plane needs to be defined in Rhino that represents the shapely coordinate system.
-            `vec1` represents the 1st vector of this plane. It will be used as shapely's x direction.
-        vec2 : numpy array, optional
-            Continuing from `vec1`, `vec2` is another vector to befine the shapely plane.
-            It must not be [0,0,0] and its only requirments is that it is any vector in the shapely plane (but not equal to `vec1`).
-        plane_distance : float, optional
-            The distance to the shapely plane. If it is not provided, all geometry is projected onto the provided plane(via `vec1` and `vec2`).
-            If it is provided, then only surfaces in the uniquely plane (defined by `vec1`, `vec2`, and `plane_distance`) are yeilded.
-        project : Boolean, optional
-            Controls if the shapes are projected onto the plane in the direction of the shapley plane's normal.
-        parallel : Boolean, optional
-            Controls if only rhino surface have the same normal as the shapely plane are yielded. 
-            If true all nonparallel surfaces are filtered out.
-
-        Yields
-        -------
-        Shapely Surface.
-            Shapely surface with coordinates system defined by the rhino surfaces normal vector.
-
-        Raises
-        ------
-        ValueError
-            If a plane distance is provided, but a plane normal is not.
-        """
-        
         if not (vec1.ndim == 1 and vec1.size == 3):
             raise ValueError("vec1 is a numpy vector in 3d")
         if not (vec2.ndim == 1 and vec2.size == 3):
@@ -199,10 +297,10 @@ class RhImporter:
                 pgs = list(polygonize(ml))
                 if len(pgs)>0: yield pgs[0]
     
-    def get_planer_curves(self, plane_normal, plane_distance=None):
+    def get_planer_curves(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
         pass
 
-    def get_points(self, plane_normal, plane_distance):
+    def get_points(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True):
         pass
 
 class RhCurv:
