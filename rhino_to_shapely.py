@@ -272,7 +272,11 @@ class RhImporter:
             raise ValueError("vec2 is a numpy vector in 3d")
         if not project and not parallel:
             raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
-
+        if (vec1==vec2).all():
+            raise ValueError("vec2 must be different from vec1.")
+        if (vec1==np.array[0,0,0]).all() or (vec2==np.array[0,0,0]).all():
+            raise ValueError("The vectors must not be the origin.")
+            
         ct = CoordTransform(vec1,vec2)
 
         def validation_factory():
