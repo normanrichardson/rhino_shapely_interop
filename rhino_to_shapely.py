@@ -5,7 +5,37 @@ import numpy as np
 import os.path
 
 class CoordTransform:
-    def __init__(self, vec1, vec2) -> None:
+    """Class that is responsible for the tranformations between a
+    3d environment (x,y,z) and a 2d environment (x',y'). The 2d plane is derived from
+    two vectors that define the 2d plane.
+
+    Parameters
+    ----------
+    vec1 : ndarray
+        A 3d vector (x,y,z) in the prefered 2d plane. This is normalised and used as e1.
+    vec2 : ndarray
+        Another 3d vector (x,y,z) in the prefered 2d plane. 
+
+    Attributes
+    ----------
+    plane_normal : ndarray
+        The normal of the plane in (x,y,z).
+
+    Methods
+    -------
+    transform_rh_sh(pnts) :
+        Transforms a coordinate from the (x,y,z) into (x',y')
+    """
+    def __init__(self, vec1, vec2):
+        """Constructor
+
+        Parameters
+        ----------
+        vec1 : ndarray
+            A 3d vector (x,y,z) in the prefered 2d plane. This is normalised and used as e1.
+        vec2 : ndarray
+            Another 3d vector (x,y,z) in the prefered 2d plane. 
+        """
         self._e1 = vec1 / np.linalg.norm(vec1)
         e3 = np.cross(vec1, vec2) 
         self._e3 = e3 / np.linalg.norm(e3)
@@ -13,7 +43,19 @@ class CoordTransform:
         self.Tinv = np.array([self._e1,self._e2,self._e3]).T
         self.T = np.linalg.inv(self.Tinv)
     
-    def transform_rh_sh(self, pnt):
+    def transform(self, pnts):
+        """Transforms a coordinate from the (x,y,z) into (x',y')
+
+        Parameters
+        ----------
+        pnts : ndarray
+            Points in (x,y,z)
+
+        Returns
+        -------
+        ndarray
+            Points in (x',y')
+        """
         return self.T.dot(pnt)
 
     @property
@@ -153,7 +195,7 @@ class RhImporter:
                 for rh_curv in rh_curvs:
                     if not rh_curv.is_line(): 
                         rh_curv.refine(refine_num)
-                ml = MultiLineString([rc.get_shapely_line(ct.transform_rh_sh) for rc in rh_curvs])
+                ml = MultiLineString([rc.get_shapely_line(ct.transform) for rc in rh_curvs])
                 pgs = list(polygonize(ml))
                 if len(pgs)>0: yield pgs[0]
     
