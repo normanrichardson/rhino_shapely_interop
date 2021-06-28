@@ -1,12 +1,11 @@
-from shapely.geometry.multipoint import asMultiPoint
-from rhino_to_shapely import CoordTransform
-import numpy as np
+from rhino_to_shapely import CoordTransform, RhCurv
 import unittest
-from shapely.geometry import Point, asMultiPoint, MultiPoint
-from shapely.affinity import affine_transform
-import matplotlib.pyplot as plt
+from shapely.geometry import Point, asMultiPoint
+import numpy as np
+import rhino3dm as rh
 
 class TestCoordTransform(unittest.TestCase):
+    
     def test_simple_cases(self):
         x1 = np.array([1,0,-1])
         x2 = np.array([0,1,0])
@@ -46,6 +45,35 @@ class TestCoordTransform(unittest.TestCase):
         normal = ct.plane_normal
         exp = np.array([0,0, 1])
         np.testing.assert_array_almost_equal(normal, exp)
-        
+
+class TestRhCurv(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        uc = rh.ArcCurve(rh.Circle(rh.Point3d(0,0,0), 1))
+        cls.rc = RhCurv(uc)
+
+    def test_is_line(self):
+        self.assertTrue(not self.rc.is_line())
+
+    def test_get_shapely_line(self):
+        n = 9
+        theta = np.linspace(0,2*np.pi, n)
+        exp = np.array([np.cos(theta), np.sin(theta)]).T
+        test = np.array(self.rc.get_shapely_line(lambda x: x[:2]))
+        np.testing.assert_array_almost_equal(test, exp)
+
+    def test_refine(self):
+        n = 33
+        theta = np.linspace(0,2*np.pi, n)
+        pnts = np.array([np.cos(theta), np.sin(theta)])
+        exp = pnts.T
+        self.rc.refine(3)
+        test = np.array(self.rc.get_shapely_line(lambda x: x[:2]))
+        np.testing.assert_array_almost_equal(test, exp)
+
+    def tearDown(self):
+        self.rc.refine(0)
+
 if __name__=='__main__':
       unittest.main()
