@@ -56,7 +56,8 @@ class CoordTransform:
         ndarray
             Points in (x',y')
         """
-        return self.T.dot(pnts)[0:2,:]
+        pnts_prime = self.T.dot(pnts)
+        return pnts_prime[0:2,:]
 
     @property
     def plane_normal(self):
