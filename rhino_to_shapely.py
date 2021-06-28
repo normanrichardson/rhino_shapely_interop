@@ -56,7 +56,7 @@ class CoordTransform:
         ndarray
             Points in (x',y')
         """
-        return self.T.dot(pnt)
+        return self.T.dot(pnts)[0:2,:]
 
     @property
     def plane_normal(self):
@@ -276,7 +276,7 @@ class RhImporter:
             raise ValueError("vec2 must be different from vec1.")
         if (vec1==np.array[0,0,0]).all() or (vec2==np.array[0,0,0]).all():
             raise ValueError("The vectors must not be the origin.")
-            
+
         ct = CoordTransform(vec1,vec2)
 
         def validation_factory():
@@ -324,7 +324,7 @@ class RhCurv:
         for t in self._greville_points_param_modif:
             pnt = self._curv.PointAt(t)
             pnts.append([pnt.X, pnt.Y, pnt.Z])
-        pnts_np = transform(np.array(pnts).T)[0:2,:].round(decimals=12)
+        pnts_np = transform(np.array(pnts).T).round(decimals=12)
         return asLineString(pnts_np.T)
     def is_line(self):
         return self._curv.IsLinear()
