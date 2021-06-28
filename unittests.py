@@ -1,4 +1,5 @@
-from rhino_to_shapely import CoordTransform, RhCurv
+from shapely.geometry.multipoint import MultiPoint
+from rhino_to_shapely import CoordTransform, RhCurv, RhPnt
 import unittest
 from shapely.geometry import Point, asMultiPoint
 import numpy as np
@@ -69,11 +70,22 @@ class TestRhCurv(unittest.TestCase):
         pnts = np.array([np.cos(theta), np.sin(theta)])
         exp = pnts.T
         self.rc.refine(3)
-        test = np.array(self.rc.get_shapely_line(lambda x: x[:2]))
+        transform = lambda x: x[:2]
+        test = np.array(self.rc.get_shapely_line(transform))
         np.testing.assert_array_almost_equal(test, exp)
 
     def tearDown(self):
         self.rc.refine(0)
+
+class TestRhPnt(unittest.TestCase):
+    
+    def test_get_shapely_point(self):
+        transform = lambda x: x[:2]
+        pnt = rh.Point3d(1,1,1)
+        exp = Point(1,1)
+        rp = RhPnt(pnt)
+        test = rp.get_shapely_point(transform)
+        np.testing.assert_array_almost_equal(test, exp)
 
 if __name__=='__main__':
       unittest.main()

@@ -1,5 +1,5 @@
 import rhino3dm as rh
-from shapely.geometry import MultiLineString, asLineString
+from shapely.geometry import MultiLineString, asLineString, asPoint
 from shapely.ops import polygonize
 import numpy as np
 import os.path
@@ -396,3 +396,22 @@ class RhCurv:
         Boolean
         """
         return self._curv.IsLinear()
+
+class RhPnt:
+    def __init__(self, pnt):
+        """[summary]
+
+        Parameters
+        ----------
+        pnt : [type]
+            [description]
+        """
+        self._pnt = pnt
+        try:
+            self._pnt_np = np.array([pnt.X, pnt.Y, pnt.Z])
+        except:
+                self._pnt_np = np.array([pnt.X, pnt.Y, 0])
+
+    def get_shapely_point(self, transform):
+        pnts_np = transform(np.array(self._pnt_np).T).round(decimals=12)
+        return asPoint(transform(pnts_np.T))
