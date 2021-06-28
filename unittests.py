@@ -38,6 +38,14 @@ class TestCoordTransform(unittest.TestCase):
         mp = asMultiPoint(res.T)
         # test the bounds of the transformed unit circle
         np.testing.assert_array_almost_equal(list(mp.bounds), [-1.0/np.sqrt(2), -1, 1.0/np.sqrt(2), 1])
+    
+    def test_normal(self):
+        x1 = np.array([1,0,0])
+        x2 = np.array([0,1,0])
+        ct = CoordTransform(x1,x2)
+        normal = ct.plane_normal
+        exp = np.array([0,0, 1])
+        np.testing.assert_array_almost_equal(normal, exp)
         
 if __name__=='__main__':
       unittest.main()
