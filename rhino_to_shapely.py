@@ -64,6 +64,24 @@ class CoordTransform:
         return self._e3
 
 class RhImporter:
+    """Import geometric objects from rhino.
+
+    Parameters
+    ----------
+    file_name : string
+        The file name of a *.3dm file.
+    brep : rhino3dm.Brep
+        A rhino3dm brep
+
+    Methods
+    -------
+    from_file(file_name) :
+        Classmethod to create the object from a file.
+    from_serialzed_brep(s_brep):
+        Classmethod to create the object from a serialized brep object.
+    get_planer_surface(refine_num, vec1, vec2, plane_distance, project, parallel)
+        Generator that returns that single surface planer breps as shapely polygons.
+    """
     def __init__(self, **kwarg):
         if "file_name" in kwarg:
             self._file_name = kwarg["file_name"]
@@ -258,7 +276,7 @@ class RhImporter:
  
        Yields
        -------
-       Shapely Surface.
+       Shapely polygon.
            Shapely surface with a coordinate system defined by the rhino surface's normal vector.
  
        Raises
