@@ -399,12 +399,11 @@ class RhCurv:
 
 class RhPnt:
     def __init__(self, pnt):
-        """[summary]
+        """Wrapper for a rhino point.
 
         Parameters
         ----------
-        pnt : [type]
-            [description]
+        pnt : RhinoPoint3d or RhinoPoint2d
         """
         self._pnt = pnt
         try:
@@ -413,5 +412,17 @@ class RhPnt:
                 self._pnt_np = np.array([pnt.X, pnt.Y, 0])
 
     def get_shapely_point(self, transform):
+        """Get the shapely point string for the rhino point.
+
+        Parameters
+        ----------
+        transform : func
+            A function that transforms (3,n) ndarray into a new coordinate system.
+
+        Returns
+        -------
+        Shapely.Geometry.PointString
+            The shapely representation of a rhino point.
+        """
         pnts_np = transform(np.array(self._pnt_np).T).round(decimals=12)
         return asPoint(transform(pnts_np.T))
