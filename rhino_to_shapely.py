@@ -57,6 +57,7 @@ class CoordTransform:
             Points in (x',y')
         """
         pnts_prime = self.T.dot(pnts)
+        if pnts.ndim==1: return pnts_prime[0:2]
         return pnts_prime[0:2,:]
 
     @property
@@ -223,7 +224,7 @@ class RhImporter:
         -------
         Boolean
         """
-        return isinstance(geom, rh.Point3d)
+        return isinstance(geom, (rh.Point3d, rh.Point, rh.Point2d))
 
     def _process_objects(self, objects):
         """Process the file object table.
@@ -293,7 +294,7 @@ class RhImporter:
             raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
         if (vec1==vec2).all():
             raise ValueError("vec2 must be different from vec1.")
-        if (vec1==np.array[0,0,0]).all() or (vec2==np.array[0,0,0]).all():
+        if (vec1==0).all() or (vec2==0).all():
             raise ValueError("The vectors must not be the origin.")
 
         ct = CoordTransform(vec1,vec2)
@@ -321,11 +322,32 @@ class RhImporter:
                 if len(pgs)>0: yield pgs[0]
     
     def get_planer_curves(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
-        pass
+        raise NotImplementedError
 
     def get_points(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True):
-        pass
+        
+        if not (vec1.ndim == 1 and vec1.size == 3):
+            raise ValueError("vec1 is a numpy vector in 3d")
+        if not (vec2.ndim == 1 and vec2.size == 3):
+            raise ValueError("vec2 is a numpy vector in 3d")
+        if (vec1==vec2).all():
+            raise ValueError("vec2 must be different from vec1.")
+        if (vec1==0).all() or (vec2==0).all():
+            raise ValueError("The vectors must not be the origin.")
 
+        ct = CoordTransform(vec1,vec2)
+
+        def validation_factory():
+            if project: return lambda *args: True
+            if not project: 
+                return lambda pnt: ct.plane_normal.dot(pnt) == -plane_distance
+        
+        validation = validation_factory()
+        for pnt in self._point:
+            pnt_w = RhPnt(pnt)
+            if validation(pnt_w.as_numpy):
+                yield pnt_w.get_shapely_point(ct.transform)
+        
 class RhCurv:
     """Wrapper for a rhino curve.
 
@@ -409,7 +431,10 @@ class RhPnt:
         try:
             self._pnt_np = np.array([pnt.X, pnt.Y, pnt.Z])
         except:
+            try:
                 self._pnt_np = np.array([pnt.X, pnt.Y, 0])
+            except:
+                self._pnt_np = np.array([pnt.Location.X, pnt.Location.Y, pnt.Location.Z])
 
     def get_shapely_point(self, transform):
         """Get the shapely point string for the rhino point.
@@ -425,4 +450,8 @@ class RhPnt:
             The shapely representation of a rhino point.
         """
         pnts_np = transform(np.array(self._pnt_np).T).round(decimals=12)
-        return asPoint(transform(pnts_np.T))
+        return asPoint(pnts_np)
+
+    @property
+    def as_numpy(self):
+        return self._pnt_np
