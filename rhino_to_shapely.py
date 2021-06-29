@@ -245,46 +245,53 @@ class RhImporter:
             elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
     def get_planer_surface(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
-        """Get all the single surface planer breps.
-       Two vectors `vec1` and `vec2` describe the shapely plane, with coordinates (x',y').
-       The breps coordinates (x,y,z) are projected onto (x',y').
-       Options to filter breps are provided:
-           * only breps that are parallel to the Shapely plane
-           * only breps in the Shapely plane
+        """Get all the single surface planer breps as Shapely polygons.
+        Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
+        The breps coordinates (x,y,z) are projected onto (x',y').
+        Options to filter breps are provided:
+        * only breps that are parallel to the Shapely plane
+        * only breps in the Shapely plane
  
-       Parameters
-       ----------
-       refine_num : integer
-           Bézier curve interpolation number. In Rhino a surface's edges are nurb based curves.
-           Shapely does not support nurbs, so the individual Bézier curves are interpolated using straight lines.
-           This parameter sets the number of straight lines used in the interpolation.
-       vec1 : numpy array, optional
-           A 3d vector in the Shapely plane. Rhino is a 3D geometry environment.
-           Shapely is a 2D geometric library.
-           Thus a 2D plane needs to be defined in Rhino that represents the Shapely coordinate system.
-           `vec1` represents the 1st vector of this plane. It will be used as Shapely's x direction.
-       vec2 : numpy array, optional
-           Continuing from `vec1`, `vec2` is another vector to befine the Shapely plane.
-           It must not be [0,0,0] and it's only requirement is that it is any vector in the Shapely plane (but not equal to `vec1`).
-       plane_distance : float, optional
-           The distance to the Shapely plane. If it is not provided, all geometry is projected onto the provided plane(via `vec1` and `vec2`).
-           If it is provided, then only surfaces in the unique plane (defined by `vec1`, `vec2`, and `plane_distance`) are yielded.
-       project : Boolean, optional
-           Controls if the shapes are projected onto the plane in the direction of the shapley plane's normal.
-       parallel : Boolean, optional
-           Controls if only the rhino surface have the same normal as the Shapely plane are yielded.
-           If true, all non parallel surfaces are filtered out.
- 
-       Yields
-       -------
-       Shapely polygon.
-           Shapely surface with a coordinate system defined by the rhino surface's normal vector.
- 
-       Raises
-       ------
-       ValueError
-           If a plane distance is provided, but a plane normal is not.
-       """
+        Parameters
+        ----------
+        refine_num : integer
+            Bézier curve interpolation number. In Rhino a surface's edges are nurb based curves.
+            Shapely does not support nurbs, so the individual Bézier curves are interpolated using straight lines.
+            This parameter sets the number of straight lines used in the interpolation.
+        vec1 : numpy array, optional
+            A 3d vector in the Shapely plane. Rhino is a 3D geometry environment.
+            Shapely is a 2D geometric library.
+            Thus a 2D plane needs to be defined in Rhino that represents the Shapely coordinate system.
+            `vec1` represents the 1st vector of this plane. It will be used as Shapely's x direction.
+        vec2 : numpy array, optional
+            Continuing from `vec1`, `vec2` is another vector to define the Shapely plane.
+            It must not be [0,0,0] and it's only requirement is that it is any vector in the Shapely plane (but not equal to `vec1`).
+        plane_distance : float, optional
+            The distance to the Shapely plane. 
+        project : Boolean, optional
+            Controls if the breps are projected onto the plane in the direction of the Shapley plane's normal.
+        parallel : Boolean, optional
+            Controls if only the rhino surfaces that have the same normal as the Shapely plane are yielded.
+            If true, all non parallel surfaces are filtered out.
+    
+        Yields
+        -------
+        Shapely polygon.
+            Shapely polygons with a coordinate system defined by vec1, and vec2.
+    
+        Raises
+        ------
+        ValueError
+            If vec1 is not of ndim=1 and size=3
+        ValueError
+            If vec2 is not of ndim=1 and size=3
+        ValueError
+            If vec1 == vec2
+        ValueError
+            If vec1 or vec2 are the origin
+        ValueError
+            If both project and parallel are false. 
+        """
 
         if not (vec1.ndim == 1 and vec1.size == 3):
             raise ValueError("vec1 is a numpy vector in 3d")
@@ -325,7 +332,44 @@ class RhImporter:
         raise NotImplementedError
 
     def get_points(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True):
-        
+        """Get all the rhino points as Shapely points.
+        Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
+        The point coordinates (x,y,z) are projected onto (x',y').
+        Options to filter breps are provided:
+        * only points in the Shapely plane
+ 
+        Parameters
+        ----------
+        vec1 : numpy array, optional
+            A 3d vector in the Shapely plane. Rhino is a 3D geometry environment.
+            Shapely is a 2D geometric library.
+            Thus a 2D plane needs to be defined in Rhino that represents the Shapely coordinate system.
+            `vec1` represents the 1st vector of this plane. It will be used as Shapely's x direction.
+        vec2 : numpy array, optional
+            Continuing from `vec1`, `vec2` is another vector to define the Shapely plane.
+            It must not be [0,0,0] and it's only requirement is that it is any vector in the Shapely plane (but not equal to `vec1`).
+        plane_distance : float, optional
+            The distance to the Shapely plane.
+        project : Boolean, optional
+            Controls if the points are projected onto the plane in the direction of the Shapley plane's normal.
+    
+        Yields
+        -------
+        Shapely point.
+            Shapely points with a coordinate system defined by vec1, and vec2.
+    
+        Raises
+        ------
+        ValueError
+            If vec1 is not of ndim=1 and size=3
+        ValueError
+            If vec2 is not of ndim=1 and size=3
+        ValueError
+            If vec1 == vec2
+        ValueError
+            If vec1 or vec2 are the origin
+        """
+
         if not (vec1.ndim == 1 and vec1.size == 3):
             raise ValueError("vec1 is a numpy vector in 3d")
         if not (vec2.ndim == 1 and vec2.size == 3):
