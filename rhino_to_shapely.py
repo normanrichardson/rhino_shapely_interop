@@ -152,7 +152,7 @@ class RhImporter:
         if os.path.isfile(file_name):
             valid = file_name.endswith('.3dm')
         return valid
-    rh.File3dm.Objects
+
     @staticmethod
     def _validate_brep(geom):
         """Performs checks on a brep.
@@ -203,13 +203,7 @@ class RhImporter:
         -------
         Boolean
         """
-        valid = False
-        if isinstance(geom, rh.Curve):
-            if valid:=geom.IsLinear(): 
-                valid = True
-            else:
-                valid = geom.IsPlanar()
-        return valid
+        return isinstance(geom, rh.Curve)
 
     @staticmethod
     def _validate_point(geom):
@@ -244,7 +238,7 @@ class RhImporter:
             elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
             elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
-    def get_planer_surface(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
+    def get_planer_brep(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
         """Get all the single surface planer breps as Shapely polygons.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
         The breps coordinates (x,y,z) are projected onto (x',y').
@@ -328,8 +322,39 @@ class RhImporter:
                 pgs = list(polygonize(ml))
                 if len(pgs)>0: yield pgs[0]
     
-    def get_planer_curves(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
-        raise NotImplementedError
+    def get_curves(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
+        if not (vec1.ndim == 1 and vec1.size == 3):
+            raise ValueError("vec1 is a numpy vector in 3d")
+        if not (vec2.ndim == 1 and vec2.size == 3):
+            raise ValueError("vec2 is a numpy vector in 3d")
+        if not project and not parallel:
+            raise ValueError("No surface meets this criteria, a surface that is not parallel and is not projected. This would just be the intersction of the plane and the surface (i.e. a line).")
+        if (vec1==vec2).all():
+            raise ValueError("vec2 must be different from vec1.")
+        if (vec1==0).all() or (vec2==0).all():
+            raise ValueError("The vectors must not be the origin.")
+
+        ct = CoordTransform(vec1,vec2)
+
+        def validation_factory():
+            if project and parallel: 
+                # 1)check it is planer 2) check 2 points have the same distance value 
+                raise NotImplementedError()
+            if project and not parallel: return lambda *args: True
+            if not project and parallel: 
+                # 1)check it is planer 2) check a point it in the plane 
+                raise NotImplementedError()
+            
+        validation = validation_factory()
+
+        for curve in self._curve:
+            if validation():
+                rh_curvs = []
+                curve_w = RhCurv(curve)
+                if not curve_w.is_line(): 
+                    curve_w.refine(refine_num)
+                ls = curve_w.get_shapely_line(ct.transform)
+                yield ls
 
     def get_points(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True):
         """Get all the rhino points as Shapely points.
@@ -398,7 +423,7 @@ class RhCurv:
     Parameters
     ----------
     curv :
-        A rhino.Curve
+        A rhino3dm.Curve
 
     Methods
     -------
