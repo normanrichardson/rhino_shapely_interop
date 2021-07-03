@@ -323,6 +323,55 @@ class RhImporter:
                 if len(pgs)>0: yield pgs[0]
     
     def get_curves(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
+        """Get all rhino curves as Shapely line strings.
+        Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
+        The rhino curves coordinates (x,y,z) are projected onto (x',y').
+        Options to filter curve are provided:
+        * only curves that are parallel to the Shapely plane
+        * only curves in the Shapely plane
+ 
+        Parameters
+        ----------
+        refine_num : integer
+            Bézier curve interpolation number. In Rhino a curves are nurb based.
+            Shapely does not support nurbs, so the individual Bézier curves are interpolated using straight lines.
+            This parameter sets the number of straight lines used in the interpolation.
+        vec1 : numpy array, optional
+            A 3d vector in the Shapely plane. Rhino is a 3D geometry environment.
+            Shapely is a 2D geometric library.
+            Thus a 2D plane needs to be defined in Rhino that represents the Shapely coordinate system.
+            `vec1` represents the 1st vector of this plane. It will be used as Shapely's x direction.
+        vec2 : numpy array, optional
+            Continuing from `vec1`, `vec2` is another vector to define the Shapely plane.
+            It must not be [0,0,0] and it's only requirement is that it is any vector in the Shapely plane (but not equal to `vec1`).
+        plane_distance : float, optional
+            The distance to the Shapely plane. 
+        project : Boolean, optional
+            Controls if the rhino curves are projected onto the plane in the direction of the Shapley plane's normal.
+        parallel : Boolean, optional
+            Controls if the yield curves are in a plane parallel to the Shapely plane.
+            If true, all non parallel surfaces are filtered out.
+    
+        Yields
+        -------
+        Shapely polygon.
+            Shapely polygons with a coordinate system defined by vec1, and vec2.
+    
+        Raises
+        ------
+        ValueError
+            If vec1 is not of ndim=1 and size=3
+        ValueError
+            If vec2 is not of ndim=1 and size=3
+        ValueError
+            If vec1 == vec2
+        ValueError
+            If vec1 or vec2 are the origin
+        ValueError
+            If both project and parallel are false. 
+        """
+        
+        
         if not (vec1.ndim == 1 and vec1.size == 3):
             raise ValueError("vec1 is a numpy vector in 3d")
         if not (vec2.ndim == 1 and vec2.size == 3):
@@ -359,7 +408,7 @@ class RhImporter:
         """Get all the rhino points as Shapely points.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
         The point coordinates (x,y,z) are projected onto (x',y').
-        Options to filter breps are provided:
+        Options to filter rhino points are provided:
         * only points in the Shapely plane
  
         Parameters
