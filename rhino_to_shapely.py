@@ -339,18 +339,17 @@ class RhImporter:
         def validation_factory():
             if project and parallel: 
                 # 1)check it is planer 2) check 2 points have the same distance value 
-                raise NotImplementedError()
+                return lambda planer, *args: planer and ct.plane_normal.dot(args[0]) - ct.plane_normal.dot(args[1]) == 0
             if project and not parallel: return lambda *args: True
             if not project and parallel: 
-                # 1)check it is planer 2) check a point it in the plane 
-                raise NotImplementedError()
+                # 1)check it is planer 2) check a point is in the plane 
+                return lambda planer, *args: planer and ct.plane_normal.dot(args[0]) == plane_distance
             
         validation = validation_factory()
 
         for curve in self._curve:
-            if validation():
-                rh_curvs = []
-                curve_w = RhCurv(curve)
+            curve_w = RhCurv(curve)
+            if validation(curve_w.is_planer, *curve_w.get_greville_points):
                 if not curve_w.is_line(): 
                     curve_w.refine(refine_num)
                 ls = curve_w.get_shapely_line(ct.transform)
@@ -447,6 +446,7 @@ class RhCurv:
         self._greville_points_param = [self._nurb.GrevilleParameter(idx) for idx in range(len(self._nurb.Points))]
         self._degree = self._nurb.Order-1
         self._greville_points_param_modif = self._greville_points_param
+
     def refine(self,num):
         """Refine the individual Bézier curves of the rhino.Curve
 
@@ -459,6 +459,7 @@ class RhCurv:
         self._greville_points_param_modif = [self._greville_points_param[0]]
         for ii, jj in gen_interv:
             self._greville_points_param_modif += list(np.linspace(ii,jj,num+2)[1:])
+
     def get_shapely_line(self, transform):
         """Get the shapely line string for the rhino curve.
 
@@ -487,6 +488,18 @@ class RhCurv:
         Boolean
         """
         return self._curv.IsLinear()
+
+    @property
+    def get_greville_points(self):
+        pnts = []
+        for t in self._greville_points_param:
+            pnt = self._curv.PointAt(t)
+            pnts.append(np.array([pnt.X, pnt.Y, pnt.Z]))
+        return pnts
+    
+    @property
+    def is_planer(self):
+        return self._curv.IsPlanar()
 
 class RhPnt:
     def __init__(self, pnt):
