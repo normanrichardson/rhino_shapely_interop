@@ -219,24 +219,6 @@ class RhImporter:
         return valid
 
     @staticmethod
-    def _validate_surface(geom):
-        """Performs checks on a surface.
-
-        Parameters
-        ----------
-        geom : rhino3dm.GeometryBase
-            Geometry to test for surface properties.
-
-        Returns
-        -------
-        Boolean
-        """
-        valid = False
-        if isinstance(geom, rh.Surface):
-            valid = geom.IsPlanar()
-        return valid
-
-    @staticmethod
     def _validate_curve(geom):
         """Performs checks on a curve.
 
@@ -280,7 +262,6 @@ class RhImporter:
         self._point = []
         for obj in objects:
             if self._validate_brep(obj.Geometry): self._brep.append(obj.Geometry)
-            elif self._validate_surface(obj.Geometry): self._surfaces.append(obj.Geometry)
             elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
             elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
@@ -355,12 +336,12 @@ class RhImporter:
             
         validation = validation_factory()
 
-        for surf in self._brep:
-            _, frame = surf.Surfaces[0].FrameAt(0,0)
+        for brep in self._brep:
+            _, frame = brep.Surfaces[0].FrameAt(0,0)
             if validation(frame.ZAxis, frame.Origin):
                 rh_curvs = []
-                for ii in range(0,len(surf.Edges)):
-                    rh_curvs.append(RhCurv(surf.Edges[ii]))
+                for ii in range(0,len(brep.Edges)):
+                    rh_curvs.append(RhCurv(brep.Edges[ii]))
                 for rh_curv in rh_curvs:
                     if not rh_curv.is_line(): 
                         rh_curv.refine(refine_num)
