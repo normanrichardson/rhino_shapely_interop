@@ -84,12 +84,12 @@ class RhImporter:
         Generator that returns that single surface planer breps as shapely polygons.
     """
     def __init__(self, **kwarg):
-        if "file_name" in kwarg:
-            self._file_name = kwarg["file_name"]
-            model = rh.File3dm.Read(self._file_name)
-            self._process_objects(model.Objects)
+        if "model" in kwarg:
+            self._process_objects(kwarg["model"].Objects)
         elif "brep" in kwarg:
             self._brep = [kwarg["brep"]]
+        elif "curve" in kwarg:
+            self._curve = [kwarg["curve"]]
     
     @classmethod
     def from_file(cls, file_name):
@@ -111,7 +111,31 @@ class RhImporter:
         """
         if not cls._validate_file_name(file_name):
             raise ValueError("File does not exist or is not a Rhino file.")
-        return cls(file_name=file_name)
+        model = rh.File3dm.Read(file_name)
+        return cls(model=model)
+    
+    @classmethod
+    def from_file_byte_array(cls, s_file):
+        """Class method to read from a Rhino file from a byte array.
+
+        Parameters
+        ----------
+        file_name : bytes
+            Byte array of file
+
+        Returns
+        -------
+        RhImporter
+
+        Raises
+        ------
+        ValueError
+            If the byte array could not be serialized.
+        """
+        model = rh.File3dm.FromByteArray(s_file)
+        if model is None: ValueError("Byte array could not be serialized.")
+        return cls(model=model)
+        
 
     @classmethod
     def from_serialzed_brep(cls, s_brep):
@@ -134,6 +158,28 @@ class RhImporter:
         brep = rh.CommonObject.Decode(s_brep)
         if not cls._validate_brep(brep): raise ValueError("Data is not a single surface planer brep.")
         return cls(brep=brep)
+
+    @classmethod
+    def from_serialzed_curve(cls, s_curve):
+        """Class method to read from a serialized curve object.
+
+        Parameters
+        ----------
+        s_curve : string
+            Serialization of a curve
+
+        Returns
+        -------
+        RhImporter
+
+        Raises
+        ------
+        ValueError
+            If the provided serialized object is not a curve
+        """
+        curve = rh.CommonObject.Decode(s_curve)
+        if not cls._validate_curve(curve): raise ValueError("Data is not a curve.")
+        return cls(curve=curve)
 
     @staticmethod
     def _validate_file_name(file_name):
