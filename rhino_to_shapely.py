@@ -83,13 +83,13 @@ class RhImporter:
     get_planer_surface(refine_num, vec1, vec2, plane_distance, project, parallel)
         Generator that returns that single surface planer breps as shapely polygons.
     """
-    def __init__(self, **kwarg):
-        if "model" in kwarg:
-            self._process_objects(kwarg["model"].Objects)
-        elif "brep" in kwarg:
-            self._brep = [kwarg["brep"]]
-        elif "curve" in kwarg:
-            self._curve = [kwarg["curve"]]
+    def __init__(self,*, model=None, brep=None, curve=None):
+        if model is not None:
+            self._process_objects(model.Objects)
+        if brep is not None:
+            self._brep = [brep]
+        if curve is not None:
+            self._curve = [curve]
     
     @classmethod
     def from_file(cls, file_name):
@@ -135,7 +135,6 @@ class RhImporter:
         model = rh.File3dm.FromByteArray(s_file)
         if model is None: ValueError("Byte array could not be serialized.")
         return cls(model=model)
-        
 
     @classmethod
     def from_serialzed_brep(cls, s_brep):
