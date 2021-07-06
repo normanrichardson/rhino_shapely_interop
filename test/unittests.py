@@ -1,5 +1,7 @@
 from numpy.core.numeric import isclose
-from rhino_to_shapely import CoordTransform, RhCurv, RhPnt, RhImporter
+from rhino_shapely_interop.transformations import CoordTransform
+from rhino_shapely_interop.rhino_wrappers import RhPnt, RhCurv
+from rhino_shapely_interop.importers import RhImporter
 import unittest
 from shapely.geometry import Point, asMultiPoint, Polygon, LineString, MultiPoint
 import numpy as np
