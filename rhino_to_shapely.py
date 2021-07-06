@@ -69,21 +69,33 @@ class RhImporter:
 
     Parameters
     ----------
-    file_name : string
-        The file name of a *.3dm file.
+    model: rhino3dm.File3dm
+        A keyword argument for a rhino3dm model
     brep : rhino3dm.Brep
-        A rhino3dm brep
-
+        A keyword argument for a rhino3dm brep
+    curve: rhino3dm.Curve
+        A keyword argument for a rhino3dm curve
     Methods
     -------
     from_file(file_name) :
         Classmethod to create the object from a file.
+    from_file_byte_array():
+        Classmethod to create the object from a byte array file object.
     from_serialzed_brep(s_brep):
         Classmethod to create the object from a serialized brep object.
-    get_planer_surface(refine_num, vec1, vec2, plane_distance, project, parallel)
-        Generator that returns that single surface planer breps as shapely polygons.
+    from_serialzed_curve(s_curve):
+        Classmethod to create the object from a serialized curve object.
+    get_planer_brep(refine_num, vec1, vec2, plane_distance, project, parallel)
+        Generator that returns single surface planer breps as shapely polygons.
+    get_curves(refine_num, vec1, vec2, plane_distance, project, parallel):
+        Generator that returns curves as shapely line strings.
+    get_points(vec1, vec2, plane_distance, project):
+        Generator that returns points as shapely points.
     """
     def __init__(self,*, model=None, brep=None, curve=None):
+        self._brep = []
+        self._curve = []
+        self._point = []
         if model is not None:
             self._process_objects(model.Objects)
         if brep is not None:
@@ -255,10 +267,6 @@ class RhImporter:
         objects : rhino3dm.File3dmObjectTable
             The object table for the file.
         """
-        self._brep = []
-        self._surfaces = []
-        self._curve = []
-        self._point = []
         for obj in objects:
             if self._validate_brep(obj.Geometry): self._brep.append(obj.Geometry)
             elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
