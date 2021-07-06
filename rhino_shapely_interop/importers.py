@@ -3,6 +3,8 @@ from shapely.geometry import MultiLineString
 from shapely.ops import polygonize
 import numpy as np
 import os.path
+from .rhino_wrappers import RhCurv, RhPnt
+from .transformations import CoordTransform
 
 class RhImporter:
     """Import geometric objects from rhino.
