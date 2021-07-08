@@ -1,5 +1,5 @@
 import rhino3dm as rh
-from shapely.geometry import MultiLineString
+from shapely.geometry import MultiLineString, Polygon, MultiPolygon
 from shapely.ops import polygonize
 import numpy as np
 import os.path
@@ -39,7 +39,8 @@ class RhImporter:
         self._curve = []
         self._point = []
         if model is not None:
-            self._process_objects(model.Objects)
+            inst_ids = self._get_instance_ids(model)
+            self._process_objects(model.Objects, inst_ids)
         if brep is not None:
             self._brep = [brep]
         if curve is not None:
@@ -201,7 +202,13 @@ class RhImporter:
         """
         return isinstance(geom, (rh.Point3d, rh.Point, rh.Point2d))
 
-    def _process_objects(self, objects):
+    def _get_instance_ids(self, model: rh.File3dm):
+        ids = []
+        for instance in model.InstanceDefinitions:
+            ids+=instance.GetObjectIds()
+        return ids
+
+    def _process_objects(self, objects, inst_ids):
         """Process the file object table.
 
         Parameters
@@ -210,9 +217,10 @@ class RhImporter:
             The object table for the file.
         """
         for obj in objects:
-            if self._validate_brep(obj.Geometry): self._brep.append(obj.Geometry)
-            elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
-            elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
+            if not obj.Attributes.Id in inst_ids:
+                if self._validate_brep(obj.Geometry): self._brep.append(obj.Geometry)
+                elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
+                elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
     def get_planer_brep(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
         """Get all the single surface planer breps as Shapely polygons.
