@@ -90,7 +90,7 @@ class TestRhPnt(unittest.TestCase):
 
 class TestRhinoImporterValidation(unittest.TestCase):
     def test_validate_file_name(self):
-        self.assertTrue(RhImporter._validate_file_name("unit_circle.3dm"))
+        self.assertTrue(RhImporter._validate_file_name("example_data/unit_circle.3dm"))
 
     def test_validate_brep(self):
         pln = rh.Plane(rh.Point3d(0,0,0), rh.Vector3d(0,0,1))
@@ -119,7 +119,7 @@ class TestRhinoImporterValidation(unittest.TestCase):
 
 class TestRhinoImporterCreation(unittest.TestCase):
     def test_creation_from_file(self):
-        rhi = RhImporter.from_file("unit_circle.3dm")
+        rhi = RhImporter.from_file("example_data/unit_circle.3dm")
         self.assertEqual(len(rhi._point), 0)
         self.assertEqual(len(rhi._curve), 1)
         self.assertEqual(len(rhi._brep), 0)
