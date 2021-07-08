@@ -1,6 +1,6 @@
 import rhino3dm as rh
-from shapely.geometry import MultiLineString, Polygon, MultiPolygon
-from shapely.ops import polygonize
+from shapely.geometry import MultiLineString, LinearRing
+from shapely.ops import polygonize, linemerge
 import numpy as np
 import os.path
 from .rhino_wrappers import RhCurv, RhPnt
@@ -302,7 +302,18 @@ class RhImporter:
                 for rh_curv in rh_curvs:
                     if not rh_curv.is_line(): 
                         rh_curv.refine(refine_num)
-                ml = MultiLineString([rc.get_shapely_line(ct.transform) for rc in rh_curvs])
+                
+                # Rarely some of the edges do not redister as being closed, so this 
+                # set of operations: 
+                #   merges the lines that make up edges
+                #   creates LinearRings from the now merged LineStrings (closing the edge)
+                #   polgonizes the LinearRings
+                pw_line_list = MultiLineString([rc.get_shapely_line(ct.transform) for rc in rh_curvs])
+                line_list = linemerge(pw_line_list)
+                try:
+                    ml = MultiLineString([LinearRing(line) for line in line_list])
+                except TypeError as e:
+                    ml = MultiLineString([LinearRing(line_list)])
                 pgs = list(polygonize(ml))
                 if len(pgs)>0: yield pgs[0]
     
