@@ -216,7 +216,7 @@ class RhImporter:
         return isinstance(geom, (rh.Point3d, rh.Point, rh.Point2d))
 
     @staticmethod
-    def _get_instance_ids(self, model):
+    def _get_instance_ids(model):
         """
         Gets the list of geometric objects that are part of the models InstanceDefinitions.
         These are geometric objects that are:
