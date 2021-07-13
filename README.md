@@ -20,5 +20,5 @@ python -m unittest test.unittests
 
 ## Examples:
 See 
-1) `example1.py` for importing from a file
-2) `example2.py` for importing from serialized brep
+1) [`example1.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example1.py) for importing from a file
+2) [`example2.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example2.py) for importing from serialized brep
