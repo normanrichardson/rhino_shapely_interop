@@ -1,5 +1,8 @@
-from shapely.geometry import asLineString, asPoint
+from typing import List
+from rhino_shapely_interop.transformations import CoordTransform
+from shapely.geometry import asLineString, asPoint, LineString, Point
 import numpy as np
+import rhino3dm
 
 class RhCurv:
     """Wrapper for a rhino curve.
@@ -18,7 +21,7 @@ class RhCurv:
     is_line() : 
         Is the rhino line a straight line
     """
-    def __init__(self, curv):
+    def __init__(self, curv: rhino3dm.Curve):
         """Constructor
 
         Parameters
@@ -32,7 +35,7 @@ class RhCurv:
         self._degree = self._nurb.Order-1
         self._greville_points_param_modif = self._greville_points_param
 
-    def refine(self,num):
+    def refine(self,num: int) -> None:
         """Refine the individual Bézier curves of the rhino.Curve
 
         Parameters
@@ -45,7 +48,7 @@ class RhCurv:
         for ii, jj in gen_interv:
             self._greville_points_param_modif += list(np.linspace(ii,jj,num+2)[1:])
 
-    def get_shapely_line(self, transform):
+    def get_shapely_line(self, transform: CoordTransform) -> LineString:
         """Get the shapely line string for the rhino curve.
 
         Parameters
@@ -65,7 +68,7 @@ class RhCurv:
         pnts_np = transform(np.array(pnts).T).round(decimals=12)
         return asLineString(pnts_np.T)
     
-    def is_line(self):
+    def is_line(self) -> bool:
         """Is the rhino line a straight line
 
         Returns
@@ -75,7 +78,7 @@ class RhCurv:
         return self._curv.IsLinear()
 
     @property
-    def get_greville_points(self):
+    def get_greville_points(self) -> List[np.ndarray]:
         """Get the Greville points (points on the curve) at params defined by rhino.
 
         Returns
@@ -90,7 +93,7 @@ class RhCurv:
         return pnts
     
     @property
-    def is_planer(self):
+    def is_planer(self) -> bool:
         """Wrapper for rhino curve function.
 
         Returns
@@ -114,7 +117,7 @@ class RhPnt:
     as_numpy : 
         Get the numpy array representation.
     """
-    def __init__(self, pnt):
+    def __init__(self, pnt: rhino3dm.Point):
         """Wrapper for a rhino point.
 
         Parameters
@@ -130,7 +133,7 @@ class RhPnt:
             except:
                 self._pnt_np = np.array([pnt.Location.X, pnt.Location.Y, pnt.Location.Z])
 
-    def get_shapely_point(self, transform):
+    def get_shapely_point(self, transform: CoordTransform) -> Point:
         """Get the shapely point string for the rhino point.
 
         Parameters
@@ -147,7 +150,7 @@ class RhPnt:
         return asPoint(pnts_np)
 
     @property
-    def as_numpy(self):
+    def as_numpy(self) -> np.ndarray:
         """Get the points numpy representation.
 
         Returns

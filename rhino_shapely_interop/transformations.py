@@ -24,7 +24,7 @@ class CoordTransform:
     plane_normal() : 
         The vector normal to `vec1` and `vec2`.
     """
-    def __init__(self, vec1, vec2):
+    def __init__(self, vec1: np.ndarray, vec2: np.ndarray):
         """Constructor
 
         Parameters
@@ -41,7 +41,7 @@ class CoordTransform:
         self.Tinv = np.array([self._e1,self._e2,self._e3]).T
         self.T = np.linalg.inv(self.Tinv)
     
-    def transform(self, pnts):
+    def transform(self, pnts: np.ndarray) -> np.ndarray:
         """Transforms a coordinate from the (x,y,z) into (x',y')
 
         Parameters
@@ -59,7 +59,7 @@ class CoordTransform:
         return pnts_prime[0:2,:]
 
     @property
-    def plane_normal(self):
+    def plane_normal(self) -> np.ndarray:
         """The vector normal to `vec1` and `vec2`.
 
         Returns

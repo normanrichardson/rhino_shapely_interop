@@ -1,5 +1,7 @@
+from typing import Iterator, List, Optional
+import uuid
 import rhino3dm as rh
-from shapely.geometry import MultiLineString, LinearRing
+from shapely.geometry import MultiLineString, LinearRing, Polygon, Point, LineString
 from shapely.ops import polygonize, linemerge
 import numpy as np
 import os.path
@@ -36,7 +38,7 @@ class RhImporter:
     get_points(vec1, vec2, plane_distance, project) :
         Generator that returns points as shapely points.
     """
-    def __init__(self,*, model=None, brep=None, curve=None):
+    def __init__(self,*, model: Optional[rh.File3dm] = None, brep: Optional[rh.Brep] = None, curve: Optional[rh.Curve] = None):
         """Constructor
 
         Parameters
@@ -60,7 +62,7 @@ class RhImporter:
             self._curve.append(curve)
     
     @classmethod
-    def from_file(cls, file_name):
+    def from_file(cls, file_name:str) -> 'RhImporter':
         """Class method to read from a Rhino file.
 
         Parameters
@@ -83,7 +85,7 @@ class RhImporter:
         return cls(model=model)
     
     @classmethod
-    def from_file_byte_array(cls, s_file):
+    def from_file_byte_array(cls, s_file: str) -> 'RhImporter':
         """Class method to read from a Rhino file from a byte array.
 
         Parameters
@@ -105,7 +107,7 @@ class RhImporter:
         return cls(model=model)
 
     @classmethod
-    def from_serialzed_brep(cls, s_brep):
+    def from_serialzed_brep(cls, s_brep: str) -> 'RhImporter':
         """Class method to read from a serialized brep object.
 
         Parameters
@@ -127,7 +129,7 @@ class RhImporter:
         return cls(brep=brep)
 
     @classmethod
-    def from_serialzed_curve(cls, s_curve):
+    def from_serialzed_curve(cls, s_curve: str) -> 'RhImporter':
         """Class method to read from a serialized curve object.
 
         Parameters
@@ -149,7 +151,7 @@ class RhImporter:
         return cls(curve=curve)
 
     @staticmethod
-    def _validate_file_name(file_name):
+    def _validate_file_name(file_name: str) -> bool:
         """Performs checks on a file name.
 
         Parameters
@@ -167,7 +169,7 @@ class RhImporter:
         return valid
 
     @staticmethod
-    def _validate_brep(geom):
+    def _validate_brep(geom: rh.Brep) -> bool:
         """Performs checks on a brep.
 
         Parameters
@@ -186,7 +188,7 @@ class RhImporter:
         return valid
 
     @staticmethod
-    def _validate_curve(geom):
+    def _validate_curve(geom: rh.Curve) -> bool:
         """Performs checks on a curve.
 
         Parameters
@@ -201,7 +203,7 @@ class RhImporter:
         return isinstance(geom, rh.Curve)
 
     @staticmethod
-    def _validate_point(geom):
+    def _validate_point(geom: rh.Point) -> bool:
         """Performs checks on a point.
 
         Parameters
@@ -216,7 +218,7 @@ class RhImporter:
         return isinstance(geom, (rh.Point3d, rh.Point, rh.Point2d))
 
     @staticmethod
-    def _get_instance_ids(model):
+    def _get_instance_ids(model: rh.File3dm) -> List[uuid.UUID]:
         """
         Gets the list of geometric objects that are part of the models InstanceDefinitions.
         These are geometric objects that are:
@@ -238,7 +240,7 @@ class RhImporter:
             ids+=instance.GetObjectIds()
         return ids
 
-    def _process_objects(self, objects, inst_ids):
+    def _process_objects(self, objects: rh.File3dmObjectTable, inst_ids: List[uuid.UUID]) -> None:
         """Process the file object table.
 
         Parameters
@@ -252,7 +254,13 @@ class RhImporter:
                 elif self._validate_curve(obj.Geometry): self._curve.append(obj.Geometry)
                 elif self._validate_point(obj.Geometry): self._point.append(obj.Geometry)
             
-    def get_planer_brep(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0.0, project=True, parallel=False):
+    def get_planer_brep(self, 
+                        refine_num: Optional[int] = 1, 
+                        vec1: Optional[np.ndarray] = np.array([1,0,0]), 
+                        vec2: Optional[np.ndarray] = np.array([0,1,0]), 
+                        plane_distance: Optional[float]=0.0, 
+                        project: Optional[bool] = True, 
+                        parallel: Optional[bool] = False) -> Iterator[Polygon]:
         """Get all the single surface planer breps as Shapely polygons.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
         The breps coordinates (x,y,z) are projected onto (x',y').
@@ -347,7 +355,13 @@ class RhImporter:
                 pgs = list(polygonize(ml))
                 if len(pgs)>0: yield pgs[0]
     
-    def get_curves(self, refine_num, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True, parallel=False):
+    def get_curves(self, 
+                   refine_num: Optional[int] = 1, 
+                   vec1: Optional[np.ndarray] = np.array([1,0,0]), 
+                   vec2: Optional[np.ndarray] = np.array([0,1,0]), 
+                   plane_distance: Optional[float]=0.0, 
+                   project: Optional[bool] = True, 
+                   parallel: Optional[bool] = False) -> Iterator[LineString]:
         """Get all rhino curves as Shapely line strings.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
         The rhino curves coordinates (x,y,z) are projected onto (x',y').
@@ -379,8 +393,8 @@ class RhImporter:
     
         Yields
         -------
-        Shapely polygon.
-            Shapely polygons with a coordinate system defined by vec1, and vec2.
+        Shapely lineString.
+            Shapely lineString with a coordinate system defined by vec1, and vec2.
     
         Raises
         ------
@@ -429,7 +443,11 @@ class RhImporter:
                 ls = curve_w.get_shapely_line(ct.transform)
                 yield ls
 
-    def get_points(self, vec1=np.array([1,0,0]), vec2=np.array([0,1,0]), plane_distance=0, project=True):
+    def get_points(self,
+                   vec1: Optional[np.ndarray] = np.array([1,0,0]), 
+                   vec2: Optional[np.ndarray] = np.array([0,1,0]), 
+                   plane_distance: Optional[float]=0.0, 
+                   project: Optional[bool] = True) -> Iterator[Point]:
         """Get all the rhino points as Shapely points.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with coordinates (x',y').
         The point coordinates (x,y,z) are projected onto (x',y').
