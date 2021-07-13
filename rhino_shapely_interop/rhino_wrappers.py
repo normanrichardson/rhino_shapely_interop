@@ -6,16 +6,16 @@ class RhCurv:
 
     Parameters
     ----------
-    curv :
+    curv : 
         A rhino3dm.Curve
 
     Methods
     -------
-    refine(num) :
+    refine(num) : 
         Refine the individual Bézier curves of the rhino.Curve
-    get_shapely_line(transform) :
+    get_shapely_line(transform) : 
         Get the shapely line string for the rhino curve.
-    is_line() :
+    is_line() : 
         Is the rhino line a straight line
     """
     def __init__(self, curv):
@@ -76,6 +76,13 @@ class RhCurv:
 
     @property
     def get_greville_points(self):
+        """Get the Greville points (points on the curve) at params defined by rhino.
+
+        Returns
+        -------
+        List of numpy vectors
+            Greville points
+        """
         pnts = []
         for t in self._greville_points_param:
             pnt = self._curv.PointAt(t)
@@ -84,9 +91,29 @@ class RhCurv:
     
     @property
     def is_planer(self):
+        """Wrapper for rhino curve function.
+
+        Returns
+        -------
+        Boolean
+        """
         return self._curv.IsPlanar()
 
 class RhPnt:
+    """Wrapper for a rhino point.
+
+    Parameters
+    ----------
+    pnt : 
+        A rhino3dm.Point
+
+    Methods
+    -------
+    get_shapely_point(transform) : 
+        Get the shapely point string for the rhino point.
+    as_numpy : 
+        Get the numpy array representation.
+    """
     def __init__(self, pnt):
         """Wrapper for a rhino point.
 
@@ -121,4 +148,10 @@ class RhPnt:
 
     @property
     def as_numpy(self):
+        """Get the points numpy representation.
+
+        Returns
+        -------
+        ndarray
+        """
         return self._pnt_np

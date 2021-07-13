@@ -19,8 +19,10 @@ class CoordTransform:
 
     Methods
     -------
-    transform(pnts) :
+    transform(pnts) : 
         Transforms a coordinate from the (x,y,z) into (x',y')
+    plane_normal() : 
+        The vector normal to `vec1` and `vec2`.
     """
     def __init__(self, vec1, vec2):
         """Constructor
@@ -58,4 +60,10 @@ class CoordTransform:
 
     @property
     def plane_normal(self):
+        """The vector normal to `vec1` and `vec2`.
+
+        Returns
+        -------
+        ndarray
+        """
         return self._e3

@@ -11,30 +11,43 @@ class RhImporter:
 
     Parameters
     ----------
-    model: rhino3dm.File3dm
+    model : rhino3dm.File3dm
         A keyword argument for a rhino3dm model
     brep : rhino3dm.Brep
         A keyword argument for a rhino3dm brep
-    curve: rhino3dm.Curve
+    curve : rhino3dm.Curve
         A keyword argument for a rhino3dm curve
+
+
     Methods
     -------
     from_file(file_name) :
         Classmethod to create the object from a file.
-    from_file_byte_array():
+    from_file_byte_array() :
         Classmethod to create the object from a byte array file object.
-    from_serialzed_brep(s_brep):
+    from_serialzed_brep(s_brep) :
         Classmethod to create the object from a serialized brep object.
-    from_serialzed_curve(s_curve):
+    from_serialzed_curve(s_curve) :
         Classmethod to create the object from a serialized curve object.
-    get_planer_brep(refine_num, vec1, vec2, plane_distance, project, parallel)
+    get_planer_brep(refine_num, vec1, vec2, plane_distance, project, parallel) :
         Generator that returns single surface planer breps as shapely polygons.
-    get_curves(refine_num, vec1, vec2, plane_distance, project, parallel):
+    get_curves(refine_num, vec1, vec2, plane_distance, project, parallel) :
         Generator that returns curves as shapely line strings.
-    get_points(vec1, vec2, plane_distance, project):
+    get_points(vec1, vec2, plane_distance, project) :
         Generator that returns points as shapely points.
     """
     def __init__(self,*, model=None, brep=None, curve=None):
+        """Constructor
+
+        Parameters
+        ----------
+        model : rhino3dm.File3dm
+            A keyword argument for a rhino3dm model
+        brep : rhino3dm.Brep
+            A keyword argument for a rhino3dm brep
+        curve : rhino3dm.Curve
+            A keyword argument for a rhino3dm curve
+        """
         self._brep = []
         self._curve = []
         self._point = []
@@ -42,9 +55,9 @@ class RhImporter:
             inst_ids = self._get_instance_ids(model)
             self._process_objects(model.Objects, inst_ids)
         if brep is not None:
-            self._brep = [brep]
+            self._brep.append(brep)
         if curve is not None:
-            self._curve = [curve]
+            self._curve.append(curve)
     
     @classmethod
     def from_file(cls, file_name):
@@ -202,7 +215,24 @@ class RhImporter:
         """
         return isinstance(geom, (rh.Point3d, rh.Point, rh.Point2d))
 
-    def _get_instance_ids(self, model: rh.File3dm):
+    @staticmethod
+    def _get_instance_ids(self, model):
+        """
+        Gets the list of geometric objects that are part of the models InstanceDefinitions.
+        These are geometric objects that are:
+        * Blocks
+        * Annotations
+
+        Parameters
+        ----------
+        model : rhino3dm.File3dm
+            A rhino3dm model
+
+        Returns
+        -------
+        List of UUID
+            List of geometric objects that are part of the models InstanceDefinitions
+        """
         ids = []
         for instance in model.InstanceDefinitions:
             ids+=instance.GetObjectIds()
@@ -303,7 +333,7 @@ class RhImporter:
                     if not rh_curv.is_line(): 
                         rh_curv.refine(refine_num)
                 
-                # Rarely some of the edges do not redister as being closed, so this 
+                # Rarely, some of the edges do not register as being closed, so this 
                 # set of operations: 
                 #   merges the lines that make up edges
                 #   creates LinearRings from the now merged LineStrings (closing the edge)
