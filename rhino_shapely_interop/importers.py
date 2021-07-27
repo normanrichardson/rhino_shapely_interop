@@ -270,7 +270,7 @@ class RhImporter:
  
         Parameters
         ----------
-        refine_num : integer
+        refine_num : integer, optional
             Bézier curve interpolation number. In Rhino a surface's edges are nurb based curves.
             Shapely does not support nurbs, so the individual Bézier curves are interpolated using straight lines.
             This parameter sets the number of straight lines used in the interpolation.
