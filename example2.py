@@ -6,7 +6,7 @@ import json
 with open("example_data/data.json") as file:
     data = json.load(file)
 
-rhi = RhImporter.from_serialzed_brep(data[0])
+rhi = RhImporter.from_serialzed_brep(data)
 
 # plot all planer brep on x,y plane
 polys = list(rhi.get_planer_brep(2))
