@@ -1,6 +1,9 @@
 # rhino_shapely_interop
 A python package for converting rhino geometry (https://www.rhino3d.com/) into shapely geometry (https://pypi.org/project/Shapely/).
 
+## Installation
+> pip install rhino-shapley-interop
+
 ## Supported Geometry:
 1) Rhino Points -> Shapely Points
 2) Rhino Curves -> Shapely LineStrings
@@ -15,10 +18,19 @@ A python package for converting rhino geometry (https://www.rhino3d.com/) into s
     * Blocks
     * Annotations
 
-## Testing:
-python -m unittest test.unittests
-
 ## Examples:
 See 
 1) [`example1.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example1.py) for importing from a file
 2) [`example2.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example2.py) for importing from serialized brep
+
+# Development/Contributions
+1. Fork and clone to a local working directory
+2. Setup a virtual environment
+> python -m venv env
+
+> source env/bin/activate
+3. Install in editable mode
+> pip install -e .
+
+4. Testing
+> python -m unittest test.unittests
