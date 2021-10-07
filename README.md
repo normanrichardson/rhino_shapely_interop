@@ -30,7 +30,7 @@ See
 
 > source env/bin/activate
 3. Install in editable mode
-> pip install -e .
+> pip install -e .[dev]
 
 4. Testing
 > python -m unittest test.unittests
