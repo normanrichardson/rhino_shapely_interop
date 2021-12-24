@@ -1,6 +1,6 @@
 from typing import List
 from rhino_shapely_interop.transformations import CoordTransform
-from shapely.geometry import asLineString, asPoint, LineString, Point
+from shapely.geometry import LineString, Point, LineString, Point
 import numpy as np
 import rhino3dm
 
@@ -66,7 +66,7 @@ class RhCurv:
             pnt = self._curv.PointAt(t)
             pnts.append([pnt.X, pnt.Y, pnt.Z])
         pnts_np = transform(np.array(pnts).T).round(decimals=12)
-        return asLineString(pnts_np.T)
+        return LineString(pnts_np.T)
     
     def is_line(self) -> bool:
         """Is the rhino line a straight line
@@ -147,7 +147,7 @@ class RhPnt:
             The shapely representation of a rhino point.
         """
         pnts_np = transform(np.array(self._pnt_np).T).round(decimals=12)
-        return asPoint(pnts_np)
+        return Point(pnts_np)
 
     @property
     def as_numpy(self) -> np.ndarray:
