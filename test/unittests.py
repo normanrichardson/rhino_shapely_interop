@@ -2,7 +2,7 @@ from rhino_shapely_interop.transformations import CoordTransform
 from rhino_shapely_interop.rhino_wrappers import RhPnt, RhCurv
 from rhino_shapely_interop.importers import RhImporter
 import unittest
-from shapely.geometry import Point, asMultiPoint, Polygon, LineString, MultiPoint
+from shapely.geometry import Point, MultiPoint, Polygon, LineString, MultiPoint
 import numpy as np
 import rhino3dm as rh
 
@@ -36,7 +36,7 @@ class TestCoordTransform(unittest.TestCase):
         x2 = np.array([0,1,0])
         ct = CoordTransform(x1,x2)
         res = ct.transform(pnts)
-        mp = asMultiPoint(res.T)
+        mp = MultiPoint(res.T)
         # test the bounds of the transformed unit circle
         np.testing.assert_array_almost_equal(list(mp.bounds), [-1.0/np.sqrt(2), -1, 1.0/np.sqrt(2), 1])
     
@@ -62,7 +62,7 @@ class TestRhCurv(unittest.TestCase):
         n = 9
         theta = np.linspace(0,2*np.pi, n)
         exp = np.array([np.cos(theta), np.sin(theta)]).T
-        test = np.array(self.rc.get_shapely_line(lambda x: x[:2]))
+        test = np.array(self.rc.get_shapely_line(lambda x: x[:2]).coords)
         np.testing.assert_array_almost_equal(test, exp)
 
     def test_refine(self):
@@ -72,7 +72,7 @@ class TestRhCurv(unittest.TestCase):
         exp = pnts.T
         self.rc.refine(3)
         transform = lambda x: x[:2]
-        test = np.array(self.rc.get_shapely_line(transform))
+        test = np.array(self.rc.get_shapely_line(transform).coords)
         np.testing.assert_array_almost_equal(test, exp)
 
     def tearDown(self):
@@ -86,7 +86,7 @@ class TestRhPnt(unittest.TestCase):
         exp = Point(1,1)
         rp = RhPnt(pnt)
         test = rp.get_shapely_point(transform)
-        np.testing.assert_array_almost_equal(test, exp)
+        np.testing.assert_array_almost_equal(test.coords, exp.coords)
 
 class TestRhinoImporterValidation(unittest.TestCase):
     def test_validate_file_name(self):
@@ -185,10 +185,10 @@ class TestRhinoImporterExports(unittest.TestCase):
         model.Objects.AddPoint(pnt1)
         model.Objects.AddPoint(pnt2)
         rhi = RhImporter(model=model)
-        test = asMultiPoint([poly for poly in rhi.get_points()])
+        test = MultiPoint([poly for poly in rhi.get_points()])
         exp = MultiPoint([(5,2), (8,2)])
         self.assertTrue((test-exp).is_empty)
-        test = asMultiPoint([poly for poly in rhi.get_points(np.array([0,0,1]),np.array([0,1,0]))])
+        test = MultiPoint([poly for poly in rhi.get_points(np.array([0,0,1]),np.array([0,1,0]))])
         exp = MultiPoint([(3,2), (2,2)])
         self.assertTrue((test-exp).is_empty)
 
