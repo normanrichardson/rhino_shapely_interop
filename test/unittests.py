@@ -2,7 +2,7 @@ from rhino_shapely_interop.transformations import CoordTransform
 from rhino_shapely_interop.rhino_wrappers import RhPnt, RhCurv
 from rhino_shapely_interop.importers import RhImporter
 import unittest
-from shapely.geometry import Point, MultiPoint, Polygon, LineString, MultiPoint
+from shapely.geometry import Point, Polygon, LineString, MultiPoint
 import numpy as np
 import rhino3dm as rh
 
