@@ -16,10 +16,10 @@ polys = list(rhi.get_planer_brep(2))
 plt.show()
 
 # Isolate a single planer brep
-pnt = Point(128,40)
+pnt = Point(128, 40)
 sec = None
 for poly in polys:
-    if poly.contains(pnt): 
+    if poly.contains(pnt):
         sec = poly
         break
 
