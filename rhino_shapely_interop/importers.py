@@ -1,10 +1,12 @@
-from typing import Iterator, List, Optional
-import uuid
-import rhino3dm as rh
-from shapely.geometry import MultiLineString, LinearRing, Polygon, Point, LineString
-from shapely.ops import polygonize, linemerge
-import numpy as np
 import os.path
+import uuid
+from typing import Iterator, List, Optional
+
+import numpy as np
+import rhino3dm as rh
+from shapely.geometry import LinearRing, LineString, MultiLineString, Point, Polygon
+from shapely.ops import linemerge, polygonize
+
 from .rhino_wrappers import RhCurv, RhPnt
 from .transformations import CoordTransform
 

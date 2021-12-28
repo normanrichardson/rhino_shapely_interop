@@ -1,8 +1,10 @@
 from typing import List
-from rhino_shapely_interop.transformations import CoordTransform
-from shapely.geometry import LineString, Point
+
 import numpy as np
 import rhino3dm
+from shapely.geometry import LineString, Point
+
+from rhino_shapely_interop.transformations import CoordTransform
 
 
 class RhCurv:
