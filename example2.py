@@ -1,6 +1,8 @@
-from rhino_shapely_interop.importers import RhImporter
-import matplotlib.pyplot as plt
 import json
+
+import matplotlib.pyplot as plt
+
+from rhino_shapely_interop.importers import RhImporter
 
 # load the encoded json object of a brep object
 with open("example_data/data.json") as file:

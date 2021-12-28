@@ -1,6 +1,7 @@
-from rhino_shapely_interop.importers import RhImporter
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
+
+from rhino_shapely_interop.importers import RhImporter
 
 rhi = RhImporter.from_file("example_data/file_1.3dm")
 
@@ -16,10 +17,10 @@ polys = list(rhi.get_planer_brep(2))
 plt.show()
 
 # Isolate a single planer brep
-pnt = Point(128,40)
+pnt = Point(128, 40)
 sec = None
 for poly in polys:
-    if poly.contains(pnt): 
+    if poly.contains(pnt):
         sec = poly
         break
 
