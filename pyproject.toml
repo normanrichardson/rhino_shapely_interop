@@ -17,8 +17,12 @@ exclude = '''
 /(
     \.git
   | \.venv
-  | \venv
+  | venv
+  | \.env
+  | env
   | build
   | dist
+  | example_data
+  | reference
 )/
 '''

@@ -26,6 +26,7 @@ class CoordTransform:
     plane_normal() :
         The vector normal to `vec1` and `vec2`.
     """
+
     def __init__(self, vec1: np.ndarray, vec2: np.ndarray):
         """Constructor
 

@@ -4,7 +4,13 @@ from typing import Iterator, List, Optional
 
 import numpy as np
 import rhino3dm as rh
-from shapely.geometry import LinearRing, LineString, MultiLineString, Point, Polygon
+from shapely.geometry import (
+    LinearRing,
+    LineString,
+    MultiLineString,
+    Point,
+    Polygon,
+)
 from shapely.ops import linemerge, polygonize
 
 from .rhino_wrappers import RhCurv, RhPnt
@@ -41,11 +47,14 @@ class RhImporter:
     get_points(vec1, vec2, plane_distance, project) :
         Generator that returns points as shapely points.
     """
-    def __init__(self,
-                 *,
-                 model: Optional[rh.File3dm] = None,
-                 brep: Optional[rh.Brep] = None,
-                 curve: Optional[rh.Curve] = None):
+
+    def __init__(
+        self,
+        *,
+        model: Optional[rh.File3dm] = None,
+        brep: Optional[rh.Brep] = None,
+        curve: Optional[rh.Curve] = None
+    ):
         """Constructor
 
         Parameters
@@ -69,7 +78,7 @@ class RhImporter:
             self._curve.append(curve)
 
     @classmethod
-    def from_file(cls, file_name: str) -> 'RhImporter':
+    def from_file(cls, file_name: str) -> "RhImporter":
         """Class method to read from a Rhino file.
 
         Parameters
@@ -92,7 +101,7 @@ class RhImporter:
         return cls(model=model)
 
     @classmethod
-    def from_file_byte_array(cls, s_file: str) -> 'RhImporter':
+    def from_file_byte_array(cls, s_file: str) -> "RhImporter":
         """Class method to read from a Rhino file from a byte array.
 
         Parameters
@@ -115,7 +124,7 @@ class RhImporter:
         return cls(model=model)
 
     @classmethod
-    def from_serialzed_brep(cls, s_brep: str) -> 'RhImporter':
+    def from_serialzed_brep(cls, s_brep: str) -> "RhImporter":
         """Class method to read from a serialized brep object.
 
         Parameters
@@ -139,7 +148,7 @@ class RhImporter:
         return cls(brep=brep)
 
     @classmethod
-    def from_serialzed_curve(cls, s_curve: str) -> 'RhImporter':
+    def from_serialzed_curve(cls, s_curve: str) -> "RhImporter":
         """Class method to read from a serialized curve object.
 
         Parameters
@@ -176,7 +185,7 @@ class RhImporter:
         """
         valid = False
         if os.path.isfile(file_name):
-            valid = file_name.endswith('.3dm')
+            valid = file_name.endswith(".3dm")
         return valid
 
     @staticmethod
@@ -252,9 +261,9 @@ class RhImporter:
             ids += instance.GetObjectIds()
         return ids
 
-    def _process_objects(self,
-                         objects: rh.File3dmObjectTable,
-                         inst_ids: List[uuid.UUID]) -> None:
+    def _process_objects(
+        self, objects: rh.File3dmObjectTable, inst_ids: List[uuid.UUID]
+    ) -> None:
         """Process the file object table.
 
         Parameters
@@ -271,13 +280,15 @@ class RhImporter:
                 elif self._validate_point(obj.Geometry):
                     self._point.append(obj.Geometry)
 
-    def get_planer_brep(self,
-                        refine_num: Optional[int] = 1,
-                        vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
-                        vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
-                        plane_distance: Optional[float] = 0.0,
-                        project: Optional[bool] = True,
-                        parallel: Optional[bool] = False) -> Iterator[Polygon]:
+    def get_planer_brep(
+        self,
+        refine_num: Optional[int] = 1,
+        vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
+        vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
+        plane_distance: Optional[float] = 0.0,
+        project: Optional[bool] = True,
+        parallel: Optional[bool] = False,
+    ) -> Iterator[Polygon]:
         """Get all the single surface planer breps as Shapely polygons.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with
         coordinates (x',y'). The breps coordinates (x,y,z) are projected onto
@@ -340,9 +351,11 @@ class RhImporter:
             raise ValueError("vec2 is a numpy vector in 3d")
         if not project and not parallel:
             raise ValueError(
-                ("No surface meets this criteria, a surface that is not "
-                 "parallel and is not projected. This would just be the "
-                 "intersction of the plane and the surface (i.e. a line).")
+                (
+                    "No surface meets this criteria, a surface that is not "
+                    "parallel and is not projected. This would just be the "
+                    "intersction of the plane and the surface (i.e. a line)."
+                )
             )
         if (vec1 == vec2).all():
             raise ValueError("vec2 must be different from vec1.")
@@ -353,12 +366,22 @@ class RhImporter:
 
         def validation_factory():
             if project and parallel:
-                return lambda normal, *args: (ct.plane_normal == np.array([normal.X, normal.Y, normal.Z])).all()
+                return lambda normal, *args: (
+                    ct.plane_normal == np.array([normal.X, normal.Y, normal.Z])
+                ).all()
             if project and not parallel:
                 return lambda *args: True
             if not project and parallel:
-                return lambda normal, orig: (ct.plane_normal == np.array([normal.X, normal.Y, normal.Z])).all() and \
-                    normal.X*orig.X + normal.Y*orig.Y + normal.Z*orig.Z == plane_distance
+                return (
+                    lambda normal, orig: (
+                        ct.plane_normal
+                        == np.array([normal.X, normal.Y, normal.Z])
+                    ).all()
+                    and normal.X * orig.X
+                    + normal.Y * orig.Y
+                    + normal.Z * orig.Z
+                    == plane_distance
+                )
 
         validation = validation_factory()
 
@@ -378,23 +401,29 @@ class RhImporter:
                 #   creates LinearRings from the now merged LineStrings
                 #   (closing the edge)
                 #   polgonizes the LinearRings
-                pw_line_list = MultiLineString([rc.get_shapely_line(ct.transform) for rc in rh_curvs])
+                pw_line_list = MultiLineString(
+                    [rc.get_shapely_line(ct.transform) for rc in rh_curvs]
+                )
                 line_list = linemerge(pw_line_list)
                 try:
-                    ml = MultiLineString([LinearRing(line) for line in line_list])
+                    ml = MultiLineString(
+                        [LinearRing(line) for line in line_list]
+                    )
                 except TypeError:
                     ml = MultiLineString([LinearRing(line_list)])
                 pgs = list(polygonize(ml))
                 if len(pgs) > 0:
                     yield pgs[0]
 
-    def get_curves(self,
-                   refine_num: Optional[int] = 1,
-                   vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
-                   vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
-                   plane_distance: Optional[float] = 0.0,
-                   project: Optional[bool] = True,
-                   parallel: Optional[bool] = False) -> Iterator[LineString]:
+    def get_curves(
+        self,
+        refine_num: Optional[int] = 1,
+        vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
+        vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
+        plane_distance: Optional[float] = 0.0,
+        project: Optional[bool] = True,
+        parallel: Optional[bool] = False,
+    ) -> Iterator[LineString]:
         """Get all rhino curves as Shapely line strings.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with
         coordinates (x',y'). The rhino curves coordinates (x,y,z) are
@@ -456,9 +485,11 @@ class RhImporter:
             raise ValueError("vec2 is a numpy vector in 3d")
         if not project and not parallel:
             raise ValueError(
-                ("No surface meets this criteria, a surface that is not "
-                 "parallel and is not projected. This would just be the "
-                 "intersction of the plane and the surface (i.e. a line).")
+                (
+                    "No surface meets this criteria, a surface that is not "
+                    "parallel and is not projected. This would just be the "
+                    "intersction of the plane and the surface (i.e. a line)."
+                )
             )
         if (vec1 == vec2).all():
             raise ValueError("vec2 must be different from vec1.")
@@ -471,12 +502,20 @@ class RhImporter:
             if project and parallel:
                 # 1)check it is planer
                 # 2) check 2 points have the same distance value
-                return lambda planer, *args: planer and ct.plane_normal.dot(args[0]) - ct.plane_normal.dot(args[1]) == 0
+                return (
+                    lambda planer, *args: planer
+                    and ct.plane_normal.dot(args[0])
+                    - ct.plane_normal.dot(args[1])
+                    == 0
+                )
             if project and not parallel:
                 return lambda *args: True
             if not project and parallel:
                 # 1)check it is planer 2) check a point is in the plane
-                return lambda planer, *args: planer and ct.plane_normal.dot(args[0]) == plane_distance
+                return (
+                    lambda planer, *args: planer
+                    and ct.plane_normal.dot(args[0]) == plane_distance
+                )
 
         validation = validation_factory()
 
@@ -488,11 +527,13 @@ class RhImporter:
                 ls = curve_w.get_shapely_line(ct.transform)
                 yield ls
 
-    def get_points(self,
-                   vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
-                   vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
-                   plane_distance: Optional[float] = 0.0,
-                   project: Optional[bool] = True) -> Iterator[Point]:
+    def get_points(
+        self,
+        vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
+        vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
+        plane_distance: Optional[float] = 0.0,
+        project: Optional[bool] = True,
+    ) -> Iterator[Point]:
         """Get all the rhino points as Shapely points.
         Two vectors `vec1` and `vec2` describe the Shapely plane, with
         coordinates (x',y'). The point coordinates (x,y,z) are projected onto

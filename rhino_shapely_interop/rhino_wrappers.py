@@ -24,6 +24,7 @@ class RhCurv:
     is_line() :
         Is the rhino line a straight line
     """
+
     def __init__(self, curv: rhino3dm.Curve):
         """Constructor
 
@@ -34,8 +35,11 @@ class RhCurv:
         """
         self._curv = curv
         self._nurb = curv.ToNurbsCurve()
-        self._greville_points_param = [self._nurb.GrevilleParameter(idx) for idx in range(len(self._nurb.Points))]
-        self._degree = self._nurb.Order-1
+        self._greville_points_param = [
+            self._nurb.GrevilleParameter(idx)
+            for idx in range(len(self._nurb.Points))
+        ]
+        self._degree = self._nurb.Order - 1
         self._greville_points_param_modif = self._greville_points_param
 
     def refine(self, num: int) -> None:
@@ -46,10 +50,18 @@ class RhCurv:
         num : integer
             Number of refinements
         """
-        gen_interv = ((self._greville_points_param[ii], self._greville_points_param[ii+1]) for ii in range(len(self._greville_points_param)-1))
+        gen_interv = (
+            (
+                self._greville_points_param[ii],
+                self._greville_points_param[ii + 1],
+            )
+            for ii in range(len(self._greville_points_param) - 1)
+        )
         self._greville_points_param_modif = [self._greville_points_param[0]]
         for ii, jj in gen_interv:
-            self._greville_points_param_modif += list(np.linspace(ii, jj, num+2)[1:])
+            self._greville_points_param_modif += list(
+                np.linspace(ii, jj, num + 2)[1:]
+            )
 
     def get_shapely_line(self, transform: CoordTransform) -> LineString:
         """Get the shapely line string for the rhino curve.
@@ -122,6 +134,7 @@ class RhPnt:
     as_numpy :
         Get the numpy array representation.
     """
+
     def __init__(self, pnt: rhino3dm.Point):
         """Wrapper for a rhino point.
 
@@ -136,7 +149,9 @@ class RhPnt:
             try:
                 self._pnt_np = np.array([pnt.X, pnt.Y, 0])
             except AttributeError:
-                self._pnt_np = np.array([pnt.Location.X, pnt.Location.Y, pnt.Location.Z])
+                self._pnt_np = np.array(
+                    [pnt.Location.X, pnt.Location.Y, pnt.Location.Z]
+                )
 
     def get_shapely_point(self, transform: CoordTransform) -> Point:
         """Get the shapely point string for the rhino point.

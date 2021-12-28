@@ -10,7 +10,6 @@ from rhino_shapely_interop.transformations import CoordTransform
 
 
 class TestCoordTransform(unittest.TestCase):
-
     def test_simple_cases(self):
         x1 = np.array([1, 0, -1])
         x2 = np.array([0, 1, 0])
@@ -33,7 +32,7 @@ class TestCoordTransform(unittest.TestCase):
 
     def test_unit_circle(self):
         n = 101
-        theta = np.linspace(0, 2*np.pi, n)
+        theta = np.linspace(0, 2 * np.pi, n)
         pnts = np.array([np.cos(theta), np.sin(theta), np.zeros(n)])
         x1 = np.array([1, 0, -1])
         x2 = np.array([0, 1, 0])
@@ -41,7 +40,9 @@ class TestCoordTransform(unittest.TestCase):
         res = ct.transform(pnts)
         mp = MultiPoint(res.T)
         # test the bounds of the transformed unit circle
-        np.testing.assert_array_almost_equal(list(mp.bounds), [-1.0/np.sqrt(2), -1, 1.0/np.sqrt(2), 1])
+        np.testing.assert_array_almost_equal(
+            list(mp.bounds), [-1.0 / np.sqrt(2), -1, 1.0 / np.sqrt(2), 1]
+        )
 
     def test_normal(self):
         x1 = np.array([1, 0, 0])
@@ -53,7 +54,6 @@ class TestCoordTransform(unittest.TestCase):
 
 
 class TestRhCurv(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         uc = rh.ArcCurve(rh.Circle(rh.Point3d(0, 0, 0), 1))
@@ -64,18 +64,20 @@ class TestRhCurv(unittest.TestCase):
 
     def test_get_shapely_line(self):
         n = 9
-        theta = np.linspace(0, 2*np.pi, n)
+        theta = np.linspace(0, 2 * np.pi, n)
         exp = np.array([np.cos(theta), np.sin(theta)]).T
         test = np.array(self.rc.get_shapely_line(lambda x: x[:2]).coords)
         np.testing.assert_array_almost_equal(test, exp)
 
     def test_refine(self):
         n = 33
-        theta = np.linspace(0, 2*np.pi, n)
+        theta = np.linspace(0, 2 * np.pi, n)
         pnts = np.array([np.cos(theta), np.sin(theta)])
         exp = pnts.T
         self.rc.refine(3)
-        test = np.array(self.rc.get_shapely_line(transform=lambda x: x[:2]).coords)
+        test = np.array(
+            self.rc.get_shapely_line(transform=lambda x: x[:2]).coords
+        )
         np.testing.assert_array_almost_equal(test, exp)
 
     def tearDown(self):
@@ -83,7 +85,6 @@ class TestRhCurv(unittest.TestCase):
 
 
 class TestRhPnt(unittest.TestCase):
-
     def test_get_shapely_point(self):
         pnt = rh.Point3d(1, 1, 1)
         exp = Point(1, 1)
@@ -93,9 +94,10 @@ class TestRhPnt(unittest.TestCase):
 
 
 class TestRhinoImporterValidation(unittest.TestCase):
-
     def test_validate_file_name(self):
-        self.assertTrue(RhImporter._validate_file_name("example_data/unit_circle.3dm"))
+        self.assertTrue(
+            RhImporter._validate_file_name("example_data/unit_circle.3dm")
+        )
 
     def test_validate_brep(self):
         pln = rh.Plane(rh.Point3d(0, 0, 0), rh.Vector3d(0, 0, 1))
@@ -124,7 +126,6 @@ class TestRhinoImporterValidation(unittest.TestCase):
 
 
 class TestRhinoImporterCreation(unittest.TestCase):
-
     def test_creation_from_file(self):
         rhi = RhImporter.from_file("example_data/unit_circle.3dm")
         self.assertEqual(len(rhi._point), 0)
@@ -171,7 +172,7 @@ class TestRhinoImporterExports(unittest.TestCase):
         rhi = RhImporter.from_serialzed_brep(brep.Encode())
         test = [poly for poly in rhi.get_planer_brep(0)][0]
         exp = Polygon([(0, 1), (-1, -1), (1, -1)])
-        self.assertTrue((test-exp).is_empty)
+        self.assertTrue((test - exp).is_empty)
 
     def test_get_curves(self):
         pl = rh.Polyline(5)
@@ -184,7 +185,7 @@ class TestRhinoImporterExports(unittest.TestCase):
         rhi = RhImporter.from_serialzed_curve(crv.Encode())
         test = [crv for crv in rhi.get_curves(0)][0]
         exp = LineString([(1, 1), (-1, 1), (-1, -1), (1, -1), (1, 1)])
-        self.assertTrue((test-exp).is_empty)
+        self.assertTrue((test - exp).is_empty)
 
     def test_get_points(self):
         pnt1 = rh.Point3d(5, 2, 3)
@@ -195,11 +196,18 @@ class TestRhinoImporterExports(unittest.TestCase):
         rhi = RhImporter(model=model)
         test = MultiPoint([poly for poly in rhi.get_points()])
         exp = MultiPoint([(5, 2), (8, 2)])
-        self.assertTrue((test-exp).is_empty)
-        test = MultiPoint([poly for poly in rhi.get_points(np.array([0, 0, 1]), np.array([0, 1, 0]))])
+        self.assertTrue((test - exp).is_empty)
+        test = MultiPoint(
+            [
+                poly
+                for poly in rhi.get_points(
+                    np.array([0, 0, 1]), np.array([0, 1, 0])
+                )
+            ]
+        )
         exp = MultiPoint([(3, 2), (2, 2)])
-        self.assertTrue((test-exp).is_empty)
+        self.assertTrue((test - exp).is_empty)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
