@@ -2,7 +2,9 @@
 A python package for converting rhino geometry (https://www.rhino3d.com/) into shapely geometry (https://pypi.org/project/Shapely/).
 
 ## Installation
-> pip install rhino-shapley-interop
+```
+$ pip install rhino-shapley-interop
+```
 
 ## Supported Geometry:
 1) Rhino Points -> Shapely Points
@@ -26,11 +28,17 @@ See
 # Development/Contributions
 1. Fork and clone to a local working directory
 2. Setup a virtual environment
-> python -m venv env
+```
+$ python -m venv env
+$ source env/bin/activate
+```
 
-> source env/bin/activate
 3. Install in editable mode
-> pip install -e .[dev]
+```
+$ pip install -e .[dev]
+```
 
 4. Testing
-> python -m unittest test.unittests
+```
+$ python -m unittest test.unittests
+```
