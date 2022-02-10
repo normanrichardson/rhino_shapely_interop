@@ -8,9 +8,9 @@ from shapely.geometry import (
     LinearRing,
     LineString,
     MultiLineString,
+    MultiPoint,
     Point,
     Polygon,
-    MultiPoint,
 )
 from shapely.ops import linemerge, polygonize, snap
 
@@ -402,7 +402,6 @@ class RhImporter:
                     if not rh_curv.is_line():
                         rh_curv.refine(refine_num)
 
-                
                 pw_line_list = MultiLineString(
                     [rc.get_shapely_line(ct.transform) for rc in rh_curvs]
                 )
@@ -611,8 +610,7 @@ class RhImporter:
 
     @staticmethod
     def _line_merge_tol(
-        crvs: Union[LineString, MultiLineString],
-        tol: float = 1e-12
+        crvs: Union[LineString, MultiLineString], tol: float = 1e-12
     ) -> MultiLineString:
 
         completed = []
@@ -642,7 +640,7 @@ class RhImporter:
         processed = []
         for (idx, crv_i) in enumerate(incomplete):
             comp = crv_i
-            for crv_j in incomplete[idx+1:]:
+            for crv_j in incomplete[idx + 1 :]:
                 p_a = Point(comp.coords[0])
                 p_b = Point(comp.coords[-1])
                 p_targets = MultiPoint([crv_j.coords[0], crv_j.coords[-1]])

@@ -2,7 +2,14 @@ import unittest
 
 import numpy as np
 import rhino3dm as rh
-from shapely.geometry import LineString, MultiPoint, Point, Polygon, MultiLineString, LinearRing
+from shapely.geometry import (
+    LinearRing,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    Point,
+    Polygon,
+)
 
 from rhino_shapely_interop.importers import RhImporter
 from rhino_shapely_interop.rhino_wrappers import RhCurv, RhPnt
@@ -213,44 +220,52 @@ class TestRhinoImporterLineMergeTol(unittest.TestCase):
 
     # Test a single line one gap
     def test_single_line_one_gap(self):
-        l1 = MultiLineString([
+        l1 = MultiLineString(
+            [
                 LineString([(0, 0), (0, 1), (1, 1), (1, 0)]),
                 LineString([(1, 0), (0, 0.01)]),
-            ])
+            ]
+        )
         l2 = LinearRing([(0, 0.01), (0, 1), (1, 1), (1, 0)])
         l3 = LinearRing([(0, 0), (0, 1), (1, 1), (1, 0)])
         l4 = RhImporter._line_merge_tol(l1, tol=0.02)
         self.assertEqual(len(l4), 1)
-        self.assertTrue((l4[0]-l2).is_empty or (l4[0]-l3).is_empty)
+        self.assertTrue((l4[0] - l2).is_empty or (l4[0] - l3).is_empty)
 
     # Test a single line two gaps
     def test_single_line_two_gaps(self):
-        l1 = MultiLineString([
+        l1 = MultiLineString(
+            [
                 LineString([(0, 0), (0, 1), (1, 1), (1, 0)]),
                 LineString([(1.01, 0), (0, 0.01)]),
-            ])
+            ]
+        )
         l2 = LinearRing([(0, 0.01), (0, 1), (1, 1), (1.01, 0)])
         l3 = LinearRing([(0, 0), (0, 1), (1, 1), (1, 0)])
         l4 = RhImporter._line_merge_tol(l1, tol=0.02)
         self.assertEqual(len(l4), 1)
-        self.assertTrue((l4[0]-l2).is_empty or (l4[0]-l3).is_empty)
+        self.assertTrue((l4[0] - l2).is_empty or (l4[0] - l3).is_empty)
 
     # Test multiple lines one gap each
     def test_multiple_line_one_gap(self):
-        l1 = MultiLineString([
+        l1 = MultiLineString(
+            [
                 LineString([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
                 LineString([(1, -1), (-1, -1.01)]),
                 LineString([(-2, -2), (-2, 2), (2, 2), (2, -2)]),
                 LineString([(2, -2), (-2, -2.01)]),
-            ])
+            ]
+        )
         l2 = LinearRing([(-1, -1), (-1, 1), (1, 1), (1, -1)])
         l3 = LinearRing([(-2, -2), (-2, 2), (2, 2), (2, -2)])
         l4 = RhImporter._line_merge_tol(l1, tol=0.02)
         self.assertEqual(len(l4), 2)
         np.testing.assert_array_almost_equal(
-            np.asarray(l2.coords), np.asarray(l4[1].coords), 2)
+            np.asarray(l2.coords), np.asarray(l4[1].coords), 2
+        )
         np.testing.assert_array_almost_equal(
-            np.asarray(l3.coords), np.asarray(l4[0].coords), 2)
+            np.asarray(l3.coords), np.asarray(l4[0].coords), 2
+        )
 
 
 if __name__ == "__main__":
