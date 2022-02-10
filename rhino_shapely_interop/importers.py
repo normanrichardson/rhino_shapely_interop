@@ -1,3 +1,4 @@
+from binascii import Incomplete
 import os.path
 import uuid
 from typing import Iterator, List, Optional
@@ -11,7 +12,7 @@ from shapely.geometry import (
     Point,
     Polygon,
 )
-from shapely.ops import linemerge, polygonize
+from shapely.ops import linemerge, polygonize, snap, polygonize_full
 
 from .rhino_wrappers import RhCurv, RhPnt
 from .transformations import CoordTransform
@@ -283,6 +284,7 @@ class RhImporter:
     def get_planer_brep(
         self,
         refine_num: Optional[int] = 1,
+        tol = 1e-12,
         vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
         vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
         plane_distance: Optional[float] = 0.0,
@@ -405,15 +407,18 @@ class RhImporter:
                     [rc.get_shapely_line(ct.transform) for rc in rh_curvs]
                 )
                 line_list = linemerge(pw_line_list)
-                try:
-                    ml = MultiLineString(
-                        [LinearRing(line) for line in line_list]
-                    )
-                except TypeError:
-                    ml = MultiLineString([LinearRing(line_list)])
-                pgs = list(polygonize(ml))
-                if len(pgs) > 0:
+
+                line_list = self._line_merge_tol(line_list, tol)
+                pgs = list(polygonize(line_list))
+
+                if len(pgs) == 1:
                     yield pgs[0]
+                # filter out the holes returned in polygonize. There should be
+                # only one ploygon returned that has interiors
+                if len(pgs) > 0:
+                    for poly in pgs:
+                        if len(poly.interiors) > 0:
+                            yield poly
 
     def get_curves(
         self,
@@ -598,3 +603,58 @@ class RhImporter:
             pnt_w = RhPnt(pnt)
             if validation(pnt_w.as_numpy):
                 yield pnt_w.get_shapely_point(ct.transform)
+
+    @staticmethod
+    def _line_merge_tol(
+        crvs: MultiLineString,
+        tol: float = 1e-12
+    ) -> MultiLineString:
+
+        completed = []
+        incomplete = []
+        # search for rings
+        try:
+            # if a MultiLineString
+            for crv in crvs.geoms:
+                if crv.is_ring:
+                    completed.append(crv)
+                else:
+                    incomplete.append(crv)
+        except AttributeError:
+            # if a LineString
+            if crvs.is_ring:
+                completed.append(crvs)
+            else:
+                completed.append(LinearRing(crvs))
+
+        # if all curvs are rings exit
+        if len(incomplete) == 0:
+            return completed
+
+        # try snap the lines in the incomplete group to one another (snap the end points based on a tollerance)
+        processed = []
+        for (idx, crv_i) in enumerate(incomplete):
+            comp = crv_i
+            for crv_j in incomplete[idx+1:]:
+                comp = snap(comp, crv_j, tolerance=tol)
+            processed.append(comp)
+
+        # merge the snapped lines
+        merge = linemerge(processed)
+
+        # search for rings
+        try:
+            # if a MultiLineString
+            for crv in merge.geoms:
+                if crv.is_ring:
+                    completed.append(crv)
+                else:
+                    completed.append(LinearRing(crv))
+        except AttributeError:
+            # if a LineString
+            if merge.is_ring:
+                completed.append(merge)
+            else:
+                completed.append(LinearRing(merge))
+
+        return completed
