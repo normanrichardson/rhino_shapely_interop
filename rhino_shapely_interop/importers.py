@@ -640,12 +640,23 @@ class RhImporter:
         processed = []
         for (idx, crv_i) in enumerate(incomplete):
             comp = crv_i
-            for crv_j in incomplete[idx + 1 :]:
+            snaps_a = 0
+            snaps_b = 0
+            for crv_j in incomplete[idx + 1:]:
                 p_a = Point(comp.coords[0])
                 p_b = Point(comp.coords[-1])
                 p_targets = MultiPoint([crv_j.coords[0], crv_j.coords[-1]])
-                p_a = snap(p_a, p_targets, tolerance=tol)
-                p_b = snap(p_b, p_targets, tolerance=tol)
+                p_a_new = snap(p_a, p_targets, tolerance=tol)
+                p_b_new = snap(p_b, p_targets, tolerance=tol)
+                # if a snap happened count it
+                if not (p_a - p_a_new).is_empty:
+                    snaps_a += 1
+                if not (p_b - p_b_new).is_empty:
+                    snaps_b += 1
+                # if more than one snap occurs raise an error
+                if snaps_a > 1 or snaps_b > 1:
+                    raise ValueError("Multiple endpints snaped. Individual lines are 'desolving'. Tolerance is too high.")
+                p_a, p_b = p_a_new, p_b_new
                 comp = LineString([p_a, *comp.coords[1:-1], p_b])
             processed.append(comp)
 
@@ -659,12 +670,18 @@ class RhImporter:
                 if crv.is_ring:
                     completed.append(crv)
                 else:
+                    d = Point(crv.coords[0]).distance(Point(crv.coords[-1]))
+                    if d > tol:
+                        raise ValueError("The manual line merged failed to form LinearRings within the allowable tolerance. Tolerance too small.")
                     completed.append(LinearRing(crv))
         except AttributeError:
             # If a LineString
             if merge.is_ring:
                 completed.append(merge)
             else:
+                d = Point(merge.coords[0]).distance(Point(merge.coords[-1]))
+                if d > tol:
+                    raise ValueError("The manual line merged failed to form LinearRings within the allowable tolerance. Tolerance too small.")
                 completed.append(LinearRing(merge))
 
         return completed

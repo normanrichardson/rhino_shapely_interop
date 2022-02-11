@@ -267,6 +267,90 @@ class TestRhinoImporterLineMergeTol(unittest.TestCase):
             np.asarray(l3.coords), np.asarray(l4[0].coords), 2
         )
 
+    # Test multiple lines two gap each
+    def test_multiple_line_two_gap(self):
+        gap = 0.01
+        l1 = MultiLineString(
+            [
+                LineString([(-1, -1), (-1, 1), (1, 1), (1, -1-gap)]),
+                LineString([(1, -1), (-1, -1+gap)]),
+                LineString([(-2, -2), (-2, 2), (2, 2), (2, -2-gap)]),
+                LineString([(2, -2), (-2, -2+gap)]),
+            ]
+        )
+        eps = np.finfo(float).eps
+        l2 = LinearRing([(-1, -1), (-1, 1), (1, 1), (1, -1)])
+        l3 = LinearRing([(-2, -2), (-2, 2), (2, 2), (2, -2)])
+        l4 = RhImporter._line_merge_tol(l1, tol=gap+eps)
+        self.assertEqual(len(l4), 2)
+        np.testing.assert_array_almost_equal(
+            np.asarray(l2.coords), np.asarray(l4[1].coords), 2
+        )
+        np.testing.assert_array_almost_equal(
+            np.asarray(l3.coords), np.asarray(l4[0].coords), 2
+        )
+
+    # Test tol too large causing endpoints to desolve
+    def test_tol_too_large(self):
+        gap = 0.01
+        eps = np.finfo(float).eps
+        p1 = Point(-1, -1+gap)
+        p2 = Point(-2, -2+gap)
+        tol = p1.distance(p2)
+        tol_big = p1.distance(p2)+eps
+
+        l1 = MultiLineString(
+            [
+                LineString([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
+                LineString([(1, -1), p1]),
+                LineString([(-2, -2), (-2, 2), (2, 2), (2, -2)]),
+                LineString([(2, -2), p2]),
+            ]
+        )
+
+        # Test that the expected tolerance works
+        test = False
+        try:
+            RhImporter._line_merge_tol(l1, tol=tol)
+        except ValueError:
+            test = True
+        self.assertFalse(test, 'Expected accepted tolerance failed')
+
+        # Test that the expected failed tolerance (eps larger than then previous tolerance) fails 
+        with self.assertRaises(ValueError) as cm:
+            RhImporter._line_merge_tol(l1, tol=tol_big)
+        self.assertEqual(str(cm.exception), "Multiple endpints snaped. Individual lines are 'desolving'. Tolerance is too high.")
+
+        # Test tol too large causing endpoints to desolve
+    def test_tol_too_small(self):
+        gap = 0.01
+        eps = np.finfo(float).eps
+        p1 = Point(-1, -1+gap)
+        p2 = Point(-2, -2+gap)
+        tol = gap+eps
+        tol_small = gap
+
+        l1 = MultiLineString(
+            [
+                LineString([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
+                LineString([(1, -1), p1]),
+                LineString([(-2, -2), (-2, 2), (2, 2), (2, -2)]),
+                LineString([(2, -2), p2]),
+            ]
+        )
+
+        # Test that the expected tolerance works
+        test = False
+        try:
+            RhImporter._line_merge_tol(l1, tol=tol)
+        except ValueError:
+            test = True
+        self.assertFalse(test, 'Expected accepted tolerance failed')
+
+        # Test that the expected failed tolerance (eps larger than then previous tolerance) fails 
+        with self.assertRaises(ValueError) as cm:
+            RhImporter._line_merge_tol(l1, tol=tol_small)
+        self.assertEqual(str(cm.exception), "The manual line merged failed to form LinearRings within the allowable tolerance. Tolerance too small.")
 
 if __name__ == "__main__":
     unittest.main()
