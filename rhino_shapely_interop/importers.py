@@ -308,7 +308,7 @@ class RhImporter:
             interpolation.
         tol : float, optional
             A tolerance used to manually merge the endpoints of brep edges.
-            This only occurs if the brep edges do not merge to LineRings.
+            This only occurs if the brep edges do not merge to LinearRings.
             Consider using the model's absolute tolerance:
             rhino3dm.File3dmSettings.ModelAbsoluteTolerance.
         vec1 : numpy array, optional
@@ -410,7 +410,7 @@ class RhImporter:
                 # When deconstructing the brep into individual edges the
                 # endpoints of the curves are subject to a precision. This
                 # leads to Shapely's linemerge algorithm to fail to create
-                # LineRings, as there are small gaps in the lines.
+                # LinearRings, as there are small gaps in the lines.
                 line_list = self._line_merge_tol(line_list, tol)
 
                 pgs = list(polygonize(line_list))
