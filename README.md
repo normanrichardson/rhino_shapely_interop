@@ -22,8 +22,8 @@ $ pip install rhino-shapley-interop
 
 ## Examples:
 See 
-1) [`example1.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example1.py) for importing from a file
-2) [`example2.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/example2.py) for importing from serialized brep
+1) [`example1.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/examples/example1.py), and [`example3.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/examples/example3.py) for importing from a file
+2) [`example2.py`](https://github.com/normanrichardson/rhino_shapely_interop/blob/master/examples/example2.py) for importing from serialized brep
 
 # Development/Contributions
 1. Fork and clone to a local working directory
