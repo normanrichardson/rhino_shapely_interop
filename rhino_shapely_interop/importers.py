@@ -612,6 +612,29 @@ class RhImporter:
     def _line_merge_tol(
         crvs: Union[LineString, MultiLineString], tol: float = 1e-12
     ) -> MultiLineString:
+        """Line merge based on snapping endpoints that are within a tolerance.
+
+        Parameters
+        ----------
+        crvs : Union[LineString, MultiLineString]
+            The set of lines to be merged
+        tol : float, optional
+            The tolerance for the snapping, by default 1e-12
+
+        Returns
+        -------
+        MultiLineString
+            A collection of LinearRings
+
+        Raises
+        ------
+        ValueError
+            If the tolerance is too large and a lines endpoints snaps to more
+            than one line.
+        ValueError
+            If the tolerance is too small, a resulting line (after snapping)
+            endpoints is not within the tolerance.
+        """
 
         completed = []
         incomplete = []
@@ -676,8 +699,8 @@ class RhImporter:
                     d = Point(crv.coords[0]).distance(Point(crv.coords[-1]))
                     if d > tol:
                         raise ValueError(
-                            "The manual line merged failed to form LinearRings "
-                            "within the allowable tolerance. "
+                            "The manual line merged failed to form "
+                            "LinearRings within the allowable tolerance. "
                             "Tolerance too small."
                         )
                     completed.append(LinearRing(crv))
