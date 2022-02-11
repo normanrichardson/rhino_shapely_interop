@@ -1,6 +1,6 @@
 import os.path
 import uuid
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 import rhino3dm as rh
@@ -8,10 +8,11 @@ from shapely.geometry import (
     LinearRing,
     LineString,
     MultiLineString,
+    MultiPoint,
     Point,
     Polygon,
 )
-from shapely.ops import linemerge, polygonize
+from shapely.ops import linemerge, polygonize, snap
 
 from .rhino_wrappers import RhCurv, RhPnt
 from .transformations import CoordTransform
@@ -283,6 +284,7 @@ class RhImporter:
     def get_planer_brep(
         self,
         refine_num: Optional[int] = 1,
+        tol: float = 1e-10,
         vec1: Optional[np.ndarray] = np.array([1, 0, 0]),
         vec2: Optional[np.ndarray] = np.array([0, 1, 0]),
         plane_distance: Optional[float] = 0.0,
@@ -304,6 +306,11 @@ class RhImporter:
             individual Bézier curves are interpolated using straight lines.
             This parameter sets the number of straight lines used in the
             interpolation.
+        tol : float, optional
+            A tolerance used to manually merge the endpoints of brep edges.
+            This only occurs if the brep edges do not merge to LinearRings.
+            Consider using the model's absolute tolerance:
+            rhino3dm.File3dmSettings.ModelAbsoluteTolerance.
         vec1 : numpy array, optional
             A 3d vector in the Shapely plane. Rhino is a 3D geometry
             environment. Shapely is a 2D geometric library. Thus a 2D plane
@@ -395,25 +402,27 @@ class RhImporter:
                     if not rh_curv.is_line():
                         rh_curv.refine(refine_num)
 
-                # Rarely, some of the edges do not register as being closed,
-                # so this set of operations:
-                #   merges the lines that make up edges
-                #   creates LinearRings from the now merged LineStrings
-                #   (closing the edge)
-                #   polgonizes the LinearRings
                 pw_line_list = MultiLineString(
                     [rc.get_shapely_line(ct.transform) for rc in rh_curvs]
                 )
                 line_list = linemerge(pw_line_list)
-                try:
-                    ml = MultiLineString(
-                        [LinearRing(line) for line in line_list]
-                    )
-                except TypeError:
-                    ml = MultiLineString([LinearRing(line_list)])
-                pgs = list(polygonize(ml))
-                if len(pgs) > 0:
+
+                # When deconstructing the brep into individual edges the
+                # endpoints of the curves are subject to a precision. This
+                # leads to Shapely's linemerge algorithm to fail to create
+                # LinearRings, as there are small gaps in the lines.
+                line_list = self._line_merge_tol(line_list, tol)
+
+                pgs = list(polygonize(line_list))
+
+                if len(pgs) == 1:
                     yield pgs[0]
+                # filter out the holes returned in polygonize. There should be
+                # only one ploygon returned that has interiors
+                if len(pgs) > 0:
+                    for poly in pgs:
+                        if len(poly.interiors) > 0:
+                            yield poly
 
     def get_curves(
         self,
@@ -598,3 +607,91 @@ class RhImporter:
             pnt_w = RhPnt(pnt)
             if validation(pnt_w.as_numpy):
                 yield pnt_w.get_shapely_point(ct.transform)
+
+    @staticmethod
+    def _line_merge_tol(
+        crvs: Union[LineString, MultiLineString], tol: float = 1e-12
+    ) -> MultiLineString:
+
+        completed = []
+        incomplete = []
+        # Search for rings
+        try:
+            # If a MultiLineString
+            for crv in crvs.geoms:
+                if crv.is_ring:
+                    completed.append(crv)
+                else:
+                    incomplete.append(crv)
+        except AttributeError:
+            # If a LineString
+            if crvs.is_ring:
+                completed.append(crvs)
+            else:
+                completed.append(LinearRing(crvs))
+
+        # If all curvs are rings or only one LineSting, exit
+        if len(incomplete) == 0:
+            return completed
+
+        # Try snap the end points of lines in the incomplete group to one
+        # another end points of lines (snap the end points based on a
+        # tollerance)
+        processed = []
+        for (idx, crv_i) in enumerate(incomplete):
+            comp = crv_i
+            snaps_a = 0
+            snaps_b = 0
+            for crv_j in incomplete[idx + 1 :]:
+                p_a = Point(comp.coords[0])
+                p_b = Point(comp.coords[-1])
+                p_targets = MultiPoint([crv_j.coords[0], crv_j.coords[-1]])
+                p_a_new = snap(p_a, p_targets, tolerance=tol)
+                p_b_new = snap(p_b, p_targets, tolerance=tol)
+                # if a snap happened count it
+                if not (p_a - p_a_new).is_empty:
+                    snaps_a += 1
+                if not (p_b - p_b_new).is_empty:
+                    snaps_b += 1
+                # if more than one snap occurs raise an error
+                if snaps_a > 1 or snaps_b > 1:
+                    raise ValueError(
+                        "Multiple endpints snaped. Individual lines are "
+                        "'desolving'. Tolerance is too high."
+                    )
+                p_a, p_b = p_a_new, p_b_new
+                comp = LineString([p_a, *comp.coords[1:-1], p_b])
+            processed.append(comp)
+
+        # Merge the snapped lines
+        merge = linemerge(processed)
+
+        # Search for rings in the merged lines
+        try:
+            # If a MultiLineString
+            for crv in merge.geoms:
+                if crv.is_ring:
+                    completed.append(crv)
+                else:
+                    d = Point(crv.coords[0]).distance(Point(crv.coords[-1]))
+                    if d > tol:
+                        raise ValueError(
+                            "The manual line merged failed to form LinearRings "
+                            "within the allowable tolerance. "
+                            "Tolerance too small."
+                        )
+                    completed.append(LinearRing(crv))
+        except AttributeError:
+            # If a LineString
+            if merge.is_ring:
+                completed.append(merge)
+            else:
+                d = Point(merge.coords[0]).distance(Point(merge.coords[-1]))
+                if d > tol:
+                    raise ValueError(
+                        "The manual line merged failed to form LinearRings "
+                        "within the allowable tolerance. Tolerance too small."
+                    )
+                completed.append(LinearRing(merge))
+
+        return completed
